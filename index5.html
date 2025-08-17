@@ -1,0 +1,3617 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام المعلومات الشامل - مدرسة الأمير حمزة الثانوية للبنين</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap');
+        body { font-family: 'Cairo', sans-serif; }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 12px;
+            color: white;
+            font-weight: bold;
+            z-index: 1000;
+            transform: translateX(400px);
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+        .notification.show { transform: translateX(0); }
+        .notification.success { background: linear-gradient(135deg, #10b981, #059669); }
+        .notification.error { background: linear-gradient(135deg, #ef4444, #dc2626); }
+        
+        .tab-content { display: none; animation: fadeIn 0.3s ease-in-out; }
+        .tab-content.active { display: block; }
+        
+        .tab-button {
+            transition: all 0.3s ease;
+            border-radius: 8px 8px 0 0;
+        }
+        .tab-button.active {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+        .tab-button:hover {
+            background-color: #f3f4f6;
+            transform: translateY(-1px);
+        }
+        .tab-button.active:hover {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            transition: all 0.3s ease;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #10b981, #059669);
+            transition: all 0.3s ease;
+        }
+        .btn-success:hover {
+            background: linear-gradient(135deg, #059669, #047857);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            transition: all 0.3s ease;
+        }
+        .btn-danger:hover {
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(239, 68, 68, 0.3);
+        }
+        
+        .stats-card {
+            background: linear-gradient(135deg, #ffffff, #f8fafc);
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 24px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stats-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6, #06b6d4);
+        }
+        
+        .stats-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 25px 50px rgba(0,0,0,0.15);
+        }
+        
+        .student-card, .teacher-card {
+            background: linear-gradient(135deg, #ffffff, #f8fafc);
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .student-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: linear-gradient(180deg, #3b82f6, #1d4ed8);
+        }
+        
+        .teacher-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: linear-gradient(180deg, #10b981, #047857);
+        }
+        
+        .student-card:hover, .teacher-card:hover {
+            transform: translateX(8px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+        }
+        
+        .modal-backdrop {
+            backdrop-filter: blur(8px);
+            background: rgba(0, 0, 0, 0.6);
+        }
+        
+        .modal-content {
+            animation: modalSlideIn 0.3s ease-out;
+        }
+        
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9) translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .demo-accounts {
+            background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+            border: 2px solid #0ea5e9;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .demo-account-item {
+            background: white;
+            border-radius: 8px;
+            padding: 12px;
+            margin: 8px 0;
+            border-left: 4px solid #0ea5e9;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .demo-account-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.2);
+        }
+
+        .sync-indicator {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 12px 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            z-index: 999;
+            display: none;
+            backdrop-filter: blur(10px);
+        }
+
+        .sync-indicator.show {
+            display: flex;
+            align-items: center;
+            animation: slideInRight 0.3s ease;
+        }
+
+        @keyframes slideInRight {
+            from { transform: translateX(100px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .sync-spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid #e5e7eb;
+            border-top: 2px solid #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 8px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .edit-mode {
+            background-color: #fef3c7 !important;
+            border: 2px solid #f59e0b !important;
+        }
+
+        .edit-buttons {
+            display: none;
+        }
+
+        .edit-mode .edit-buttons {
+            display: flex;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+    <!-- Notification Container -->
+    <div id="notification" class="notification"></div>
+    
+    <!-- Sync Indicator -->
+    <div id="syncIndicator" class="sync-indicator">
+        <span id="syncText" class="text-sm font-semibold text-gray-700">جاري المزامنة...</span>
+        <div class="sync-spinner"></div>
+    </div>
+
+    <!-- Header -->
+    <header class="bg-gradient-to-r from-blue-800 to-indigo-900 text-white p-6 shadow-lg">
+        <div class="container mx-auto">
+            <div class="flex justify-between items-center">
+                <div class="text-center flex-1">
+                    <h1 class="text-3xl font-bold mb-2">
+                        <i class="fas fa-school mr-3"></i>
+                        مدرسة الأمير حمزة الثانوية للبنين
+                    </h1>
+                    <p class="text-blue-200">نظام المعلومات الشامل - المملكة الأردنية الهاشمية</p>
+                </div>
+                <div id="userInfo" class="hidden">
+                    <div class="text-left">
+                        <p class="text-sm text-blue-200">مرحباً</p>
+                        <p id="currentUserName" class="font-semibold"></p>
+                        <button onclick="logout()" class="mt-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm transition-colors">
+                            <i class="fas fa-sign-out-alt mr-2"></i>
+                            تسجيل الخروج
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Login Section -->
+    <div id="loginSection" class="container mx-auto mt-8 px-4">
+        <div class="max-w-4xl mx-auto">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Login Form -->
+                <div class="bg-white rounded-lg shadow-lg p-8">
+                    <div class="text-center mb-6">
+                        <i class="fas fa-user-circle text-6xl text-blue-600 mb-4"></i>
+                        <h2 class="text-2xl font-bold text-gray-800">تسجيل الدخول</h2>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-gray-700 font-semibold mb-2">نوع الحساب</label>
+                            <select id="userType" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                <option value="">اختر نوع الحساب</option>
+                                <option value="student">طالب</option>
+                                <option value="teacher">معلم</option>
+                                <option value="admin">مسؤول</option>
+                            </select>
+                        </div>
+                        
+                        <div id="loginFields" class="hidden space-y-4">
+                            <div>
+                                <label class="block text-gray-700 font-semibold mb-2">اسم المستخدم</label>
+                                <input type="text" id="username" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="أدخل اسم المستخدم">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-gray-700 font-semibold mb-2">كلمة المرور</label>
+                                <input type="password" id="password" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="أدخل كلمة المرور">
+                            </div>
+                        </div>
+                        
+                        <button onclick="performLogin()" class="w-full btn-primary text-white py-3 rounded-lg font-semibold">
+                            <i class="fas fa-sign-in-alt mr-2"></i>
+                            دخول
+                        </button>
+                        
+                        <div class="text-center space-y-2">
+                            <button onclick="showRegistration()" class="text-blue-600 hover:text-blue-800 font-semibold block">
+                                تسجيل حساب جديد
+                            </button>
+                            <div class="text-sm text-gray-600">
+                                <p>نسيت اسم المستخدم أو كلمة المرور؟</p>
+                                <p id="forgotPasswordMessage" class="text-red-600 font-semibold"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- System Status -->
+                <div class="bg-gradient-to-r from-green-50 to-blue-50 border-2 border-green-200 rounded-lg p-6">
+                    <div class="text-center mb-4">
+                        <div id="syncStatus" class="flex items-center justify-center mb-3">
+                            <div class="animate-pulse flex items-center">
+                                <div class="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
+                                <span class="text-green-700 font-semibold">متصل بقاعدة البيانات</span>
+                            </div>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-800">نظام إدارة المعلومات</h3>
+                        <p class="text-sm text-gray-600">مدرسة الأمير حمزة الثانوية للبنين</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                        <div class="bg-white p-4 rounded-lg shadow-sm">
+                            <i class="fas fa-users text-2xl text-blue-600 mb-2"></i>
+                            <p class="text-sm font-semibold text-gray-700">الطلبة المسجلين</p>
+                            <p id="loginPageStudentCount" class="text-xl font-bold text-blue-600">0</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-lg shadow-sm">
+                            <i class="fas fa-chalkboard-teacher text-2xl text-green-600 mb-2"></i>
+                            <p class="text-sm font-semibold text-gray-700">المعلمين</p>
+                            <p id="loginPageTeacherCount" class="text-xl font-bold text-green-600">0</p>
+                        </div>
+                        <div class="bg-white p-4 rounded-lg shadow-sm">
+                            <i class="fas fa-user-shield text-2xl text-purple-600 mb-2"></i>
+                            <p class="text-sm font-semibold text-gray-700">المسؤولين</p>
+                            <p id="loginPageAdminCount" class="text-xl font-bold text-purple-600">3</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Registration Section -->
+    <div id="registrationSection" class="container mx-auto mt-8 px-4 hidden">
+        <div class="max-w-2xl mx-auto bg-white rounded-lg shadow-lg p-8">
+            <div class="text-center mb-6">
+                <i class="fas fa-user-plus text-6xl text-green-600 mb-4"></i>
+                <h2 class="text-2xl font-bold text-gray-800">تسجيل حساب جديد</h2>
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-gray-700 font-semibold mb-2">نوع الحساب</label>
+                    <select id="regUserType" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500" onchange="toggleRegistrationFields()">
+                        <option value="">اختر نوع الحساب</option>
+                        <option value="student">طالب</option>
+                        <option value="teacher">معلم</option>
+                    </select>
+                </div>
+                
+                <!-- Student Registration Fields -->
+                <div id="studentFields" class="hidden space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <input type="text" id="studentName1" class="p-3 border border-gray-300 rounded-lg" placeholder="الاسم الأول">
+                        <input type="text" id="studentName2" class="p-3 border border-gray-300 rounded-lg" placeholder="اسم الأب">
+                        <input type="text" id="studentName3" class="p-3 border border-gray-300 rounded-lg" placeholder="اسم الجد">
+                        <input type="text" id="studentName4" class="p-3 border border-gray-300 rounded-lg" placeholder="اسم العائلة">
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-gray-700 font-semibold mb-2">الصف</label>
+                            <select id="studentGrade" class="w-full p-3 border border-gray-300 rounded-lg" onchange="updateSections()">
+                                <option value="">اختر الصف</option>
+                                <option value="10">العاشر</option>
+                                <option value="11">الحادي عشر أكاديمي</option>
+                                <option value="12">الثاني عشر أكاديمي</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 font-semibold mb-2">الشعبة</label>
+                            <select id="studentSection" class="w-full p-3 border border-gray-300 rounded-lg">
+                                <option value="">اختر الشعبة</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-gray-700 font-semibold mb-2">تاريخ الميلاد</label>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <input type="number" id="birthDay" class="p-3 border border-gray-300 rounded-lg" placeholder="اليوم" min="1" max="31">
+                            <input type="number" id="birthMonth" class="p-3 border border-gray-300 rounded-lg" placeholder="الشهر" min="1" max="12">
+                            <input type="number" id="birthYear" class="p-3 border border-gray-300 rounded-lg" placeholder="السنة" min="1990" max="2010">
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <input type="text" id="birthPlace" class="p-3 border border-gray-300 rounded-lg" placeholder="مكان الولادة">
+                        <input type="text" id="residence" class="p-3 border border-gray-300 rounded-lg" placeholder="مكان السكن">
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-gray-700 font-semibold mb-2">الديانة</label>
+                            <select id="religion" class="w-full p-3 border border-gray-300 rounded-lg">
+                                <option value="">اختر الديانة</option>
+                                <option value="الإسلام">الإسلام</option>
+                                <option value="المسيحية">المسيحية</option>
+                                <option value="أخرى">أخرى</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 font-semibold mb-2">الجنسية</label>
+                            <select id="nationality" class="w-full p-3 border border-gray-300 rounded-lg">
+                                <option value="">اختر الجنسية</option>
+                                <option value="أردنية">أردنية</option>
+                                <option value="فلسطينية">فلسطينية</option>
+                                <option value="سورية">سورية</option>
+                                <option value="عراقية">عراقية</option>
+                                <option value="لبنانية">لبنانية</option>
+                                <option value="سعودية">سعودية</option>
+                                <option value="مصرية">مصرية</option>
+                                <option value="أخرى">أخرى</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <input type="text" id="nationalId" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="الرقم الوطني (10 أرقام)" maxlength="10" pattern="[0-9]{10}">
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <input type="text" id="guardianName1" class="p-3 border border-gray-300 rounded-lg" placeholder="اسم ولي الأمر الأول">
+                        <input type="text" id="guardianName2" class="p-3 border border-gray-300 rounded-lg" placeholder="اسم الأب">
+                        <input type="text" id="guardianName3" class="p-3 border border-gray-300 rounded-lg" placeholder="اسم الجد">
+                        <input type="text" id="guardianName4" class="p-3 border border-gray-300 rounded-lg" placeholder="اسم العائلة">
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <input type="text" id="guardianJob" class="p-3 border border-gray-300 rounded-lg" placeholder="عمل ولي الأمر">
+                        <input type="text" id="guardianPhone" class="p-3 border border-gray-300 rounded-lg" placeholder="رقم هاتف ولي الأمر (10 أرقام)" maxlength="10" pattern="[0-9]{10}">
+                    </div>
+                </div>
+                
+                <!-- Teacher Registration Fields -->
+                <div id="teacherFields" class="hidden space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <input type="text" id="teacherName1" class="p-3 border border-gray-300 rounded-lg" placeholder="الاسم الأول">
+                        <input type="text" id="teacherName2" class="p-3 border border-gray-300 rounded-lg" placeholder="اسم الأب">
+                        <input type="text" id="teacherName3" class="p-3 border border-gray-300 rounded-lg" placeholder="اسم الجد">
+                        <input type="text" id="teacherName4" class="p-3 border border-gray-300 rounded-lg" placeholder="اسم العائلة">
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <input type="text" id="teacherNationalId" class="p-3 border border-gray-300 rounded-lg" placeholder="الرقم الوطني (10 أرقام)" maxlength="10" pattern="[0-9]{10}">
+                        <input type="text" id="teacherMinistryId" class="p-3 border border-gray-300 rounded-lg" placeholder="الرقم الوزاري">
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <input type="text" id="teacherPhone" class="p-3 border border-gray-300 rounded-lg" placeholder="رقم الهاتف (10 أرقام)" maxlength="10" pattern="[0-9]{10}">
+                        <div>
+                            <label class="block text-gray-700 font-semibold mb-2">المادة التي يدرسها</label>
+                            <select id="teacherSubject" class="w-full p-3 border border-gray-300 rounded-lg">
+                                <option value="">اختر المادة</option>
+                                <option value="اللغة العربية">اللغة العربية</option>
+                                <option value="اللغة الإنجليزية">اللغة الإنجليزية</option>
+                                <option value="الرياضيات">الرياضيات</option>
+                                <option value="الفيزياء">الفيزياء</option>
+                                <option value="الكيمياء">الكيمياء</option>
+                                <option value="الأحياء">الأحياء</option>
+                                <option value="علوم الأرض والبيئة">علوم الأرض والبيئة</option>
+                                <option value="التاريخ">التاريخ</option>
+                                <option value="الجغرافيا">الجغرافيا</option>
+                                <option value="التربية الإسلامية">التربية الإسلامية</option>
+                                <option value="التربية المسيحية">التربية المسيحية</option>
+                                <option value="الثقافة العامة">الثقافة العامة</option>
+                                <option value="الحاسوب">الحاسوب</option>
+                                <option value="التربية الرياضية">التربية الرياضية</option>
+                                <option value="التربية الفنية">التربية الفنية</option>
+                                <option value="التربية المهنية">التربية المهنية</option>
+                                <option value="اللغة الفرنسية">اللغة الفرنسية</option>
+                                <option value="أخرى">أخرى</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-gray-700 font-semibold mb-2">المسمى الوظيفي</label>
+                            <select id="teacherJobTitle" class="w-full p-3 border border-gray-300 rounded-lg">
+                                <option value="">اختر المسمى الوظيفي</option>
+                                <option value="معلم">معلم</option>
+                                <option value="أمين مكتبة">أمين مكتبة</option>
+                                <option value="سكرتير">سكرتير</option>
+                                <option value="قيّم مختبر حاسوب">قيّم مختبر حاسوب</option>
+                                <option value="معلم اضافي">معلم اضافي</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 font-semibold mb-2">رتبة المعلم</label>
+                            <select id="teacherRank" class="w-full p-3 border border-gray-300 rounded-lg">
+                                <option value="">اختر الرتبة</option>
+                                <option value="معلم اضافي">معلم اضافي</option>
+                                <option value="معلم مساعد">معلم مساعد</option>
+                                <option value="معلم">معلم</option>
+                                <option value="معلم أول">معلم أول</option>
+                                <option value="معلم قائد">معلم قائد</option>
+                                <option value="معلم خبير">معلم خبير</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-gray-700 font-semibold mb-2">الشعبة المسؤول عنها</label>
+                        <select id="teacherSection" class="w-full p-3 border border-gray-300 rounded-lg">
+                            <option value="">اختر الشعبة</option>
+                            <option value="أخرى">أخرى</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <input type="text" id="regUsername" class="p-3 border border-gray-300 rounded-lg" placeholder="اسم المستخدم" onblur="checkUsernameAvailability()">
+                        <div id="usernameStatus" class="text-sm mt-1"></div>
+                    </div>
+                    <input type="password" id="regPassword" class="p-3 border border-gray-300 rounded-lg" placeholder="كلمة المرور">
+                </div>
+                
+                <button onclick="register()" class="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition duration-300">
+                    <i class="fas fa-user-plus mr-2"></i>
+                    تسجيل
+                </button>
+                
+                <div class="text-center">
+                    <button onclick="showLogin()" class="text-blue-600 hover:text-blue-800 font-semibold">
+                        العودة لتسجيل الدخول
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard Section -->
+    <div id="dashboardSection" class="container mx-auto mt-8 px-4 hidden">
+        <!-- Tab Navigation -->
+        <div class="bg-white rounded-lg shadow-lg mb-6">
+            <div id="tabNavigation" class="flex flex-wrap border-b">
+                <!-- Tabs will be dynamically generated -->
+            </div>
+        </div>
+
+        <!-- Student Dashboard -->
+        <div id="studentDashboard" class="tab-content">
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <div class="flex justify-end mb-4">
+                    <button onclick="editStudentProfile()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                        <i class="fas fa-edit mr-2"></i>
+                        تعديل الملف الشخصي
+                    </button>
+                </div>
+                
+                <div id="studentInfo" class="space-y-4 mb-6">
+                    <!-- Student information will be displayed here -->
+                </div>
+                
+                <!-- Student Penalties Section -->
+                <div class="bg-red-50 rounded-lg p-4">
+                    <h4 class="text-lg font-semibold mb-4 text-red-700">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                        العقوبات المسجلة
+                    </h4>
+                    <div id="studentPenalties" class="space-y-2">
+                        <!-- Penalties will be displayed here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Teacher Dashboard -->
+        <div id="teacherDashboard" class="tab-content">
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <div class="flex justify-end mb-4">
+                    <button onclick="editTeacherProfile()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                        <i class="fas fa-edit mr-2"></i>
+                        تعديل الملف الشخصي
+                    </button>
+                </div>
+                
+                <div id="teacherInfo" class="space-y-4 mb-6">
+                    <!-- Teacher information will be displayed here -->
+                </div>
+                
+                <!-- Leaves Section -->
+                <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                    <h4 class="text-lg font-semibold mb-4">
+                        <i class="fas fa-calendar-times mr-2"></i>
+                        الإجازات
+                    </h4>
+                    <div id="teacherLeaves" class="space-y-2">
+                        <!-- Leaves will be displayed here -->
+                    </div>
+                </div>
+                
+                <!-- Penalties Section -->
+                <div class="bg-red-50 rounded-lg p-4">
+                    <h4 class="text-lg font-semibold mb-4 text-red-700">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                        العقوبات
+                    </h4>
+                    <div id="teacherPenalties" class="space-y-2">
+                        <!-- Penalties will be displayed here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Teacher Students Tab -->
+        <div id="teacherStudentsTab" class="tab-content">
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <div class="mb-4">
+                    <div class="flex flex-wrap gap-4 mb-4">
+                        <input type="text" id="teacherStudentSearch" class="flex-1 p-3 border border-gray-300 rounded-lg" placeholder="البحث عن طالب...">
+                        <button onclick="searchTeacherStudents()" class="btn-primary text-white px-6 py-3 rounded-xl font-semibold">
+                            <i class="fas fa-search mr-2"></i>
+                            بحث
+                        </button>
+                        <button onclick="showAddStudentModal()" class="btn-success text-white px-6 py-3 rounded-xl font-semibold">
+                            <i class="fas fa-user-plus mr-2"></i>
+                            تسجيل طالب جديد
+                        </button>
+                        <button onclick="exportTeacherStudents()" class="bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300">
+                            <i class="fas fa-file-excel mr-2"></i>
+                            تصدير Excel
+                        </button>
+                    </div>
+                </div>
+                <div id="teacherStudentsList" class="space-y-4">
+                    <!-- Students list will be displayed here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin Dashboard -->
+        <div id="adminDashboard" class="tab-content">
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div class="stats-card card-hover">
+                        <div class="flex items-center">
+                            <i class="fas fa-users text-4xl text-blue-600 mr-4"></i>
+                            <div>
+                                <h4 class="text-lg font-semibold text-blue-800">إجمالي الطلبة</h4>
+                                <p id="totalStudents" class="text-3xl font-bold text-blue-600">0</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="stats-card card-hover">
+                        <div class="flex items-center">
+                            <i class="fas fa-chalkboard-teacher text-4xl text-green-600 mr-4"></i>
+                            <div>
+                                <h4 class="text-lg font-semibold text-green-800">إجمالي المعلمين</h4>
+                                <p id="totalTeachers" class="text-3xl font-bold text-green-600">0</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="stats-card card-hover">
+                        <div class="flex items-center">
+                            <i class="fas fa-exclamation-triangle text-4xl text-red-600 mr-4"></i>
+                            <div>
+                                <h4 class="text-lg font-semibold text-red-800">عقوبات الطلبة</h4>
+                                <p id="totalStudentPenalties" class="text-3xl font-bold text-red-600">0</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="stats-card card-hover">
+                        <div class="flex items-center">
+                            <i class="fas fa-calendar-times text-4xl text-orange-600 mr-4"></i>
+                            <div>
+                                <h4 class="text-lg font-semibold text-orange-800">إجازات المعلمين</h4>
+                                <p id="totalTeacherLeaves" class="text-3xl font-bold text-orange-600">0</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-gray-50 p-6 rounded-lg">
+                        <h4 class="text-lg font-semibold mb-4">توزيع الطلبة حسب الصف</h4>
+                        <div id="studentsDistribution" class="space-y-2">
+                            <!-- Distribution will be displayed here -->
+                        </div>
+                    </div>
+                    
+                    <div class="bg-gray-50 p-6 rounded-lg">
+                        <h4 class="text-lg font-semibold mb-4">آخر العقوبات المسجلة</h4>
+                        <div id="recentPenalties" class="space-y-2">
+                            <!-- Recent penalties will be displayed here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin Students Tab -->
+        <div id="adminStudentsTab" class="tab-content">
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <div class="mb-6">
+                    <h4 class="text-xl font-semibold mb-4">إدارة الطلبة</h4>
+                    <div class="flex flex-wrap gap-4 mb-4">
+                        <input type="text" id="adminStudentSearch" class="flex-1 p-3 border border-gray-300 rounded-lg" placeholder="البحث عن طالب (الاسم أو الشعبة)...">
+                        <select id="adminGradeFilter" class="p-3 border border-gray-300 rounded-lg">
+                            <option value="">جميع الصفوف</option>
+                            <option value="10">العاشر</option>
+                            <option value="11">الحادي عشر أكاديمي</option>
+                            <option value="12">الثاني عشر أكاديمي</option>
+                        </select>
+                        <select id="adminSectionFilter" class="p-3 border border-gray-300 rounded-lg">
+                            <option value="">جميع الشعب</option>
+                        </select>
+                        <button onclick="searchAdminStudents()" class="btn-primary text-white px-6 py-3 rounded-xl font-semibold">
+                            <i class="fas fa-search mr-2"></i>
+                            بحث
+                        </button>
+                        <button onclick="showAddStudentModal()" class="btn-success text-white px-6 py-3 rounded-xl font-semibold">
+                            <i class="fas fa-user-plus mr-2"></i>
+                            تسجيل طالب جديد
+                        </button>
+                        <button onclick="exportAllStudents()" class="bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white px-6 py-3 rounded-xl font-semibold transition-all duration-300">
+                            <i class="fas fa-file-excel mr-2"></i>
+                            تصدير جميع الطلبة
+                        </button>
+                        <button onclick="exportStudentPenalties()" class="btn-danger text-white px-6 py-3 rounded-xl font-semibold">
+                            <i class="fas fa-file-excel mr-2"></i>
+                            تصدير عقوبات الطلبة
+                        </button>
+                    </div>
+                </div>
+                <div id="adminStudentsList" class="space-y-4">
+                    <!-- Students list will be displayed here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin Teachers Tab -->
+        <div id="adminTeachersTab" class="tab-content">
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <div class="mb-6">
+                    <h4 class="text-xl font-semibold mb-4">إدارة المعلمين</h4>
+                    <div class="flex flex-wrap gap-4 mb-4">
+                        <input type="text" id="adminTeacherSearch" class="flex-1 p-3 border border-gray-300 rounded-lg" placeholder="البحث عن معلم...">
+                        <button onclick="searchAdminTeachers()" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700">
+                            <i class="fas fa-search mr-2"></i>
+                            بحث
+                        </button>
+                        <button onclick="exportAllTeachers()" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700">
+                            <i class="fas fa-file-excel mr-2"></i>
+                            تصدير جميع المعلمين
+                        </button>
+                        <button onclick="exportTeacherPenalties()" class="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700">
+                            <i class="fas fa-file-excel mr-2"></i>
+                            تصدير عقوبات المعلمين
+                        </button>
+                    </div>
+                </div>
+                <div id="adminTeachersList" class="space-y-4">
+                    <!-- Teachers list will be displayed here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin Reports Tab -->
+        <div id="adminReportsTab" class="tab-content">
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <div class="mb-6">
+                    <h4 class="text-xl font-semibold mb-4">التقارير والإحصائيات</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div class="bg-blue-50 p-6 rounded-lg">
+                            <h5 class="font-semibold text-blue-800 mb-4">تقارير الطلبة</h5>
+                            <div class="space-y-2">
+                                <button onclick="generateStudentReport()" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
+                                    <i class="fas fa-file-alt mr-2"></i>
+                                    تقرير شامل للطلبة
+                                </button>
+                                <button onclick="generateGradeReport()" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">
+                                    <i class="fas fa-chart-pie mr-2"></i>
+                                    توزيع الطلبة حسب الصف
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-green-50 p-6 rounded-lg">
+                            <h5 class="font-semibold text-green-800 mb-4">تقارير المعلمين</h5>
+                            <div class="space-y-2">
+                                <button onclick="generateTeacherReport()" class="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700">
+                                    <i class="fas fa-file-alt mr-2"></i>
+                                    تقرير شامل للمعلمين
+                                </button>
+                                <button onclick="generateLeaveReport()" class="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700">
+                                    <i class="fas fa-calendar-times mr-2"></i>
+                                    تقرير الإجازات
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-red-50 p-6 rounded-lg">
+                            <h5 class="font-semibold text-red-800 mb-4">تقارير العقوبات</h5>
+                            <div class="space-y-2">
+                                <button onclick="generatePenaltyReport()" class="w-full bg-red-600 text-white py-2 rounded hover:bg-red-700">
+                                    <i class="fas fa-exclamation-triangle mr-2"></i>
+                                    تقرير العقوبات الشامل
+                                </button>
+                                <button onclick="generateMonthlyPenaltyReport()" class="w-full bg-red-600 text-white py-2 rounded hover:bg-red-700">
+                                    <i class="fas fa-calendar-alt mr-2"></i>
+                                    العقوبات الشهرية
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white text-center py-4 mt-12">
+        <p>© 2024 جميع الحقوق محفوظة للأستاذ يزن الزريقي</p>
+    </footer>
+
+    <script>
+        // Configuration
+        const supabaseUrl = 'https://tjoywnsrvytcvnmatkyg.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRqb3l3bnNydnl0Y3ZubWF0a3lnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUwNzAwOTgsImV4cCI6MjA3MDY0NjA5OH0.b9m5ITB8uqWiHi_RqJoYyYsb0G5vIV_2duwVMNQucLw';
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+        // Global Variables
+        let currentUser = null;
+        let currentUserType = null;
+
+        // Global Variables for Data
+        let allStudents = [];
+        let allTeachers = [];
+        let allAdmins = [
+            {
+                id: 'admin-1',
+                username: 'yazan',
+                password: 'yazan2024',
+                full_name: 'يزن أحمد الزريقي',
+                role: 'مدير النظام'
+            },
+            {
+                id: 'admin-2',
+                username: 'admin',
+                password: 'admin123',
+                full_name: 'المسؤول العام',
+                role: 'مسؤول عام'
+            },
+            {
+                id: 'admin-3',
+                username: 'supervisor',
+                password: 'super2024',
+                full_name: 'المشرف التربوي',
+                role: 'مشرف تربوي'
+            }
+        ];
+        let allStudentPenalties = [];
+        let allTeacherLeaves = [];
+        let allTeacherPenalties = [];
+
+        // Demo Data - Empty for production
+        const demoData = {
+            students: [],
+            teachers: [],
+            studentPenalties: [],
+            teacherLeaves: [],
+            teacherPenalties: []
+        };
+
+        // Initialize App
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeApp();
+        });
+
+        async function initializeApp() {
+            setupEventListeners();
+            populateTeacherSections();
+            await loadAllData();
+            updateLoginPageStats();
+        }
+
+        // Load all data from Supabase
+        async function loadAllData() {
+            showSyncIndicator('جاري تحميل البيانات...');
+            
+            try {
+                // Load students
+                const { data: students, error: studentsError } = await supabase
+                    .from('students')
+                    .select('*');
+                
+                if (studentsError) throw studentsError;
+                allStudents = students || [];
+
+                // Load teachers
+                const { data: teachers, error: teachersError } = await supabase
+                    .from('teachers')
+                    .select('*');
+                
+                if (teachersError) throw teachersError;
+                allTeachers = teachers || [];
+
+                // Load student penalties
+                const { data: studentPenalties, error: penaltiesError } = await supabase
+                    .from('student_penalties')
+                    .select('*');
+                
+                if (penaltiesError) throw penaltiesError;
+                allStudentPenalties = studentPenalties || [];
+
+                // Load teacher leaves
+                const { data: teacherLeaves, error: leavesError } = await supabase
+                    .from('teacher_leaves')
+                    .select('*');
+                
+                if (leavesError) throw leavesError;
+                allTeacherLeaves = teacherLeaves || [];
+
+                // Load teacher penalties
+                const { data: teacherPenalties, error: teacherPenaltiesError } = await supabase
+                    .from('teacher_penalties')
+                    .select('*');
+                
+                if (teacherPenaltiesError) throw teacherPenaltiesError;
+                allTeacherPenalties = teacherPenalties || [];
+
+                hideSyncIndicator();
+                console.log('تم تحميل جميع البيانات بنجاح');
+            } catch (error) {
+                console.error('خطأ في تحميل البيانات:', error);
+                hideSyncIndicator();
+                showNotification('تم تحميل البيانات من النسخة المحلية', 'error');
+            }
+        }
+
+        function showSyncIndicator(message) {
+            const indicator = document.getElementById('syncIndicator');
+            const text = document.getElementById('syncText');
+            text.textContent = message;
+            indicator.classList.add('show');
+        }
+
+        function hideSyncIndicator() {
+            const indicator = document.getElementById('syncIndicator');
+            indicator.classList.remove('show');
+        }
+
+        function updateLoginPageStats() {
+            document.getElementById('loginPageStudentCount').textContent = allStudents.length;
+            document.getElementById('loginPageTeacherCount').textContent = allTeachers.length;
+        }
+
+        function setupEventListeners() {
+            document.getElementById('userType').addEventListener('change', function() {
+                const loginFields = document.getElementById('loginFields');
+                const messageElement = document.getElementById('forgotPasswordMessage');
+                
+                if (this.value) {
+                    loginFields.classList.remove('hidden');
+                    
+                    if (this.value === 'student') {
+                        messageElement.textContent = 'راجع مربي الصف أو المسؤول';
+                    } else if (this.value === 'teacher') {
+                        messageElement.textContent = 'راجع المسؤول';
+                    } else {
+                        messageElement.textContent = '';
+                    }
+                } else {
+                    loginFields.classList.add('hidden');
+                    messageElement.textContent = '';
+                }
+            });
+
+            document.getElementById('adminGradeFilter').addEventListener('change', updateAdminSectionFilter);
+        }
+
+        function populateTeacherSections() {
+            const teacherSection = document.getElementById('teacherSection');
+            const sections = [];
+            const arabicLetters = ['أ', 'ب', 'ج', 'د', 'هـ', 'و', 'ز', 'ح'];
+            
+            for (let i = 0; i < 4; i++) sections.push(`العاشر ${arabicLetters[i]}`);
+            for (let i = 0; i < 8; i++) sections.push(`الحادي عشر ${arabicLetters[i]}`);
+            for (let i = 0; i < 6; i++) sections.push(`الثاني عشر ${arabicLetters[i]}`);
+            
+            sections.sort().forEach(section => {
+                const option = document.createElement('option');
+                option.value = section;
+                option.textContent = section;
+                teacherSection.appendChild(option);
+            });
+        }
+
+        function updateSections() {
+            const grade = document.getElementById('studentGrade').value;
+            const sectionSelect = document.getElementById('studentSection');
+            
+            sectionSelect.innerHTML = '<option value="">اختر الشعبة</option>';
+            
+            if (grade) {
+                const arabicLetters = ['أ', 'ب', 'ج', 'د', 'هـ', 'و', 'ز', 'ح'];
+                let maxSections = grade === '10' ? 4 : grade === '11' ? 8 : 6;
+                
+                for (let i = 0; i < maxSections; i++) {
+                    const gradeText = grade === '10' ? 'العاشر' : grade === '11' ? 'الحادي عشر' : 'الثاني عشر';
+                    const sectionValue = `${gradeText} ${arabicLetters[i]}`;
+                    const option = document.createElement('option');
+                    option.value = sectionValue;
+                    option.textContent = sectionValue;
+                    sectionSelect.appendChild(option);
+                }
+            }
+        }
+
+        function updateAdminSectionFilter() {
+            const grade = document.getElementById('adminGradeFilter').value;
+            const sectionSelect = document.getElementById('adminSectionFilter');
+            
+            sectionSelect.innerHTML = '<option value="">جميع الشعب</option>';
+            
+            if (grade) {
+                const arabicLetters = ['أ', 'ب', 'ج', 'د', 'هـ', 'و', 'ز', 'ح'];
+                let maxSections = grade === '10' ? 4 : grade === '11' ? 8 : 6;
+                
+                for (let i = 0; i < maxSections; i++) {
+                    const gradeText = grade === '10' ? 'العاشر' : grade === '11' ? 'الحادي عشر' : 'الثاني عشر';
+                    const sectionValue = `${gradeText} ${arabicLetters[i]}`;
+                    const option = document.createElement('option');
+                    option.value = sectionValue;
+                    option.textContent = sectionValue;
+                    sectionSelect.appendChild(option);
+                }
+            }
+        }
+
+        function toggleRegistrationFields() {
+            const userType = document.getElementById('regUserType').value;
+            const studentFields = document.getElementById('studentFields');
+            const teacherFields = document.getElementById('teacherFields');
+            
+            if (userType === 'student') {
+                studentFields.classList.remove('hidden');
+                teacherFields.classList.add('hidden');
+            } else if (userType === 'teacher') {
+                studentFields.classList.add('hidden');
+                teacherFields.classList.remove('hidden');
+            } else {
+                studentFields.classList.add('hidden');
+                teacherFields.classList.add('hidden');
+            }
+        }
+
+        function showRegistration() {
+            document.getElementById('loginSection').classList.add('hidden');
+            document.getElementById('registrationSection').classList.remove('hidden');
+        }
+
+        function showLogin() {
+            document.getElementById('registrationSection').classList.add('hidden');
+            document.getElementById('loginSection').classList.remove('hidden');
+        }
+
+        // Quick Login Function for Demo Accounts
+        function quickLogin(userType, username, password) {
+            document.getElementById('userType').value = userType;
+            document.getElementById('loginFields').classList.remove('hidden');
+            document.getElementById('username').value = username;
+            document.getElementById('password').value = password;
+            
+            // Update forgot password message
+            const messageElement = document.getElementById('forgotPasswordMessage');
+            if (userType === 'student') {
+                messageElement.textContent = 'راجع مربي الصف أو المسؤول';
+            } else if (userType === 'teacher') {
+                messageElement.textContent = 'راجع المسؤول';
+            } else {
+                messageElement.textContent = '';
+            }
+            
+            // Perform login
+            performLogin();
+        }
+
+        // Main Login Function
+        async function performLogin() {
+            const userType = document.getElementById('userType').value;
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            if (!userType || !username || !password) {
+                showNotification('يرجى ملء جميع الحقول', 'error');
+                return;
+            }
+
+            try {
+                let user = null;
+
+                // Check database first, then demo data
+                if (userType === 'admin') {
+                    user = allAdmins.find(admin => 
+                        admin.username === username && admin.password === password
+                    );
+                } else if (userType === 'student') {
+                    user = allStudents.find(student => 
+                        student.username === username && student.password === password
+                    );
+                } else if (userType === 'teacher') {
+                    user = allTeachers.find(teacher => 
+                        teacher.username === username && teacher.password === password
+                    );
+                }
+
+                if (user) {
+                    currentUser = user;
+                    currentUserType = userType;
+                    showDashboard();
+                    showNotification('تم تسجيل الدخول بنجاح', 'success');
+                } else {
+                    showNotification('اسم المستخدم أو كلمة المرور غير صحيحة', 'error');
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                showNotification('حدث خطأ أثناء تسجيل الدخول', 'error');
+            }
+        }
+
+        function showDashboard() {
+            document.getElementById('loginSection').classList.add('hidden');
+            document.getElementById('registrationSection').classList.add('hidden');
+            document.getElementById('dashboardSection').classList.remove('hidden');
+            
+            document.getElementById('userInfo').classList.remove('hidden');
+            document.getElementById('currentUserName').textContent = currentUser.full_name || currentUser.username;
+
+            setupTabs();
+            loadDashboardData();
+        }
+
+        function setupTabs() {
+            const tabNavigation = document.getElementById('tabNavigation');
+            tabNavigation.innerHTML = '';
+
+            if (currentUserType === 'student') {
+                tabNavigation.innerHTML = `
+                    <button class="tab-button active px-6 py-3 font-semibold" onclick="showTab('studentDashboard')">
+                        <i class="fas fa-user-graduate mr-2"></i>
+                        معلوماتي
+                    </button>
+                `;
+                showTab('studentDashboard');
+            } else if (currentUserType === 'teacher') {
+                tabNavigation.innerHTML = `
+                    <button class="tab-button active px-6 py-3 font-semibold" onclick="showTab('teacherDashboard')">
+                        <i class="fas fa-user mr-2"></i>
+                        معلوماتي
+                    </button>
+                    <button class="tab-button px-6 py-3 font-semibold" onclick="showTab('teacherStudentsTab')">
+                        <i class="fas fa-users mr-2"></i>
+                        طلبة الشعبة
+                    </button>
+                `;
+                showTab('teacherDashboard');
+            } else if (currentUserType === 'admin') {
+                tabNavigation.innerHTML = `
+                    <button class="tab-button active px-6 py-3 font-semibold" onclick="showTab('adminDashboard')">
+                        <i class="fas fa-tachometer-alt mr-2"></i>
+                        لوحة التحكم
+                    </button>
+                    <button class="tab-button px-6 py-3 font-semibold" onclick="showTab('adminStudentsTab')">
+                        <i class="fas fa-users mr-2"></i>
+                        إدارة الطلبة
+                    </button>
+                    <button class="tab-button px-6 py-3 font-semibold" onclick="showTab('adminTeachersTab')">
+                        <i class="fas fa-chalkboard-teacher mr-2"></i>
+                        إدارة المعلمين
+                    </button>
+                    <button class="tab-button px-6 py-3 font-semibold" onclick="showTab('adminReportsTab')">
+                        <i class="fas fa-chart-bar mr-2"></i>
+                        التقارير والإحصائيات
+                    </button>
+                `;
+                showTab('adminDashboard');
+            }
+        }
+
+        function showTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('active');
+            });
+
+            const targetTab = document.getElementById(tabId);
+            if (targetTab) {
+                targetTab.classList.add('active');
+            }
+
+            if (event && event.target) {
+                event.target.classList.add('active');
+            } else {
+                const firstButton = document.querySelector('.tab-button');
+                if (firstButton) {
+                    firstButton.classList.add('active');
+                }
+            }
+
+            // Load tab-specific data
+            setTimeout(() => {
+                if (tabId === 'teacherStudentsTab') {
+                    loadTeacherStudents();
+                } else if (tabId === 'adminStudentsTab') {
+                    loadAdminStudents();
+                } else if (tabId === 'adminTeachersTab') {
+                    loadAdminTeachers();
+                }
+            }, 100);
+        }
+
+        function loadDashboardData() {
+            if (currentUserType === 'student') {
+                displayStudentInfo();
+                loadStudentPenalties();
+            } else if (currentUserType === 'teacher') {
+                displayTeacherInfo();
+                loadTeacherLeaves();
+                loadTeacherPenalties();
+            } else if (currentUserType === 'admin') {
+                loadAdminDashboardStats();
+            }
+        }
+
+        function displayStudentInfo() {
+            const studentInfo = document.getElementById('studentInfo');
+            studentInfo.innerHTML = `
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-blue-50 p-6 rounded-lg border-r-4 border-blue-500">
+                        <h4 class="font-semibold text-blue-800 mb-4 flex items-center">
+                            <i class="fas fa-user text-blue-600 mr-2"></i>
+                            المعلومات الشخصية
+                        </h4>
+                        <div class="space-y-3">
+                            <p class="flex items-center"><i class="fas fa-id-badge text-blue-500 mr-2 w-5"></i><strong>الاسم الكامل:</strong> <span class="mr-2">${currentUser.full_name || 'غير محدد'}</span></p>
+                            <p class="flex items-center"><i class="fas fa-graduation-cap text-blue-500 mr-2 w-5"></i><strong>الصف:</strong> <span class="mr-2">${currentUser.grade || 'غير محدد'}</span></p>
+                            <p class="flex items-center"><i class="fas fa-users text-blue-500 mr-2 w-5"></i><strong>الشعبة:</strong> <span class="mr-2">${currentUser.section || 'غير محدد'}</span></p>
+                            <p class="flex items-center"><i class="fas fa-calendar text-blue-500 mr-2 w-5"></i><strong>تاريخ الولادة:</strong> <span class="mr-2">${currentUser.birth_date || 'غير محدد'}</span></p>
+                            <p class="flex items-center"><i class="fas fa-map-marker-alt text-blue-500 mr-2 w-5"></i><strong>مكان الولادة:</strong> <span class="mr-2">${currentUser.birth_place || 'غير محدد'}</span></p>
+                            <p class="flex items-center"><i class="fas fa-home text-blue-500 mr-2 w-5"></i><strong>مكان السكن:</strong> <span class="mr-2">${currentUser.residence || 'غير محدد'}</span></p>
+                            <p class="flex items-center"><i class="fas fa-pray text-blue-500 mr-2 w-5"></i><strong>الديانة:</strong> <span class="mr-2">${currentUser.religion || 'غير محدد'}</span></p>
+                            <p class="flex items-center"><i class="fas fa-flag text-blue-500 mr-2 w-5"></i><strong>الجنسية:</strong> <span class="mr-2">${currentUser.nationality || 'غير محدد'}</span></p>
+                            <p class="flex items-center"><i class="fas fa-id-card text-blue-500 mr-2 w-5"></i><strong>الرقم الوطني:</strong> <span class="mr-2">${currentUser.national_id || 'غير محدد'}</span></p>
+                        </div>
+                    </div>
+                    <div class="bg-green-50 p-6 rounded-lg border-r-4 border-green-500">
+                        <h4 class="font-semibold text-green-800 mb-4 flex items-center">
+                            <i class="fas fa-user-tie text-green-600 mr-2"></i>
+                            معلومات ولي الأمر
+                        </h4>
+                        <div class="space-y-3">
+                            <p class="flex items-center"><i class="fas fa-user text-green-500 mr-2 w-5"></i><strong>اسم ولي الأمر:</strong> <span class="mr-2">${currentUser.guardian_name || 'غير محدد'}</span></p>
+                            <p class="flex items-center"><i class="fas fa-briefcase text-green-500 mr-2 w-5"></i><strong>العمل:</strong> <span class="mr-2">${currentUser.guardian_job || 'غير محدد'}</span></p>
+                            <p class="flex items-center"><i class="fas fa-phone text-green-500 mr-2 w-5"></i><strong>رقم الهاتف:</strong> <span class="mr-2">${currentUser.guardian_phone || 'غير محدد'}</span></p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function displayTeacherInfo() {
+            const teacherInfo = document.getElementById('teacherInfo');
+            teacherInfo.innerHTML = `
+                <div class="bg-blue-50 p-6 rounded-lg border-r-4 border-blue-500">
+                    <h4 class="font-semibold text-blue-800 mb-4 flex items-center">
+                        <i class="fas fa-chalkboard-teacher text-blue-600 mr-2"></i>
+                        المعلومات الشخصية والوظيفية
+                    </h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="space-y-3">
+                            <p class="flex items-center"><i class="fas fa-id-badge text-blue-500 mr-2 w-5"></i><strong>الاسم الكامل:</strong> <span class="mr-2">${currentUser.full_name || 'غير محدد'}</span></p>
+                            <p class="flex items-center"><i class="fas fa-phone text-blue-500 mr-2 w-5"></i><strong>رقم الهاتف:</strong> <span class="mr-2">${currentUser.phone || 'غير محدد'}</span></p>
+                            <p class="flex items-center"><i class="fas fa-book text-blue-500 mr-2 w-5"></i><strong>المادة:</strong> <span class="mr-2">${currentUser.subject || 'غير محدد'}</span></p>
+                            <p class="flex items-center"><i class="fas fa-briefcase text-blue-500 mr-2 w-5"></i><strong>المسمى الوظيفي:</strong> <span class="mr-2">${currentUser.job_title || 'غير محدد'}</span></p>
+                        </div>
+                        <div class="space-y-3">
+                            <p class="flex items-center"><i class="fas fa-star text-blue-500 mr-2 w-5"></i><strong>الرتبة:</strong> <span class="mr-2">${currentUser.rank || 'غير محدد'}</span></p>
+                            <p class="flex items-center"><i class="fas fa-users text-blue-500 mr-2 w-5"></i><strong>الشعبة المسؤول عنها:</strong> <span class="mr-2">${currentUser.section || 'غير محدد'}</span></p>
+                            <p class="flex items-center"><i class="fas fa-id-card text-blue-500 mr-2 w-5"></i><strong>الرقم الوطني:</strong> <span class="mr-2">${currentUser.national_id || 'غير محدد'}</span></p>
+                            <p class="flex items-center"><i class="fas fa-certificate text-blue-500 mr-2 w-5"></i><strong>الرقم الوزاري:</strong> <span class="mr-2">${currentUser.ministry_id || 'غير محدد'}</span></p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function loadStudentPenalties() {
+            const penalties = allStudentPenalties.filter(penalty => penalty.student_id === currentUser.id);
+            const penaltiesContainer = document.getElementById('studentPenalties');
+            
+            if (penalties && penalties.length > 0) {
+                const penaltyTypes = {
+                    'grade_deduction': 'حسم علامات',
+                    'warning': 'إنذار',
+                    'internal_transfer': 'نقل داخلي',
+                    'external_transfer': 'نقل خارجي',
+                    'expulsion': 'فصل من المدرسة'
+                };
+
+                penaltiesContainer.innerHTML = penalties.map(penalty => `
+                    <div class="bg-white p-3 rounded border border-red-200">
+                        <div class="flex justify-between items-center">
+                            <span class="font-semibold text-red-700">
+                                ${penaltyTypes[penalty.type]}
+                                ${penalty.grade_deduction_amount ? ` (${penalty.grade_deduction_amount} علامة)` : ''}
+                            </span>
+                            <span class="text-sm text-gray-600">${penalty.date}</span>
+                        </div>
+                        <p class="text-sm text-gray-700 mt-1">${penalty.reason}</p>
+                        <p class="text-xs text-gray-500 mt-1">أوقعها: ${penalty.issued_by}</p>
+                    </div>
+                `).join('');
+            } else {
+                penaltiesContainer.innerHTML = '<p class="text-gray-500">لا توجد عقوبات مسجلة</p>';
+            }
+        }
+
+        function loadTeacherLeaves() {
+            const leaves = allTeacherLeaves.filter(leave => leave.teacher_id === currentUser.id);
+            const leavesContainer = document.getElementById('teacherLeaves');
+            
+            if (leaves && leaves.length > 0) {
+                leavesContainer.innerHTML = leaves.map(leave => `
+                    <div class="bg-white p-3 rounded border">
+                        <div class="flex justify-between items-center">
+                            <span class="font-semibold">${leave.type === 'sick' ? 'إجازة مرضية' : 'إجازة عرضية'}</span>
+                            <span class="text-sm text-gray-600">${leave.date}</span>
+                        </div>
+                        <p class="text-sm text-gray-700 mt-1">${leave.reason}</p>
+                    </div>
+                `).join('');
+            } else {
+                leavesContainer.innerHTML = '<p class="text-gray-500">لا توجد إجازات مسجلة</p>';
+            }
+        }
+
+        function loadTeacherPenalties() {
+            const penalties = allTeacherPenalties.filter(penalty => penalty.teacher_id === currentUser.id);
+            const penaltiesContainer = document.getElementById('teacherPenalties');
+            
+            if (penalties && penalties.length > 0) {
+                const penaltyTypes = {
+                    'warning': 'تنبيه',
+                    'notice': 'إنذار',
+                    'no_pay': 'عدم صرف',
+                    'deduction': 'حسم 3 أيام'
+                };
+
+                penaltiesContainer.innerHTML = penalties.map(penalty => `
+                    <div class="bg-white p-3 rounded border border-red-200">
+                        <div class="flex justify-between items-center">
+                            <span class="font-semibold text-red-700">${penaltyTypes[penalty.type]}</span>
+                            <span class="text-sm text-gray-600">${penalty.date}</span>
+                        </div>
+                        <p class="text-sm text-gray-700 mt-1">${penalty.reason}</p>
+                    </div>
+                `).join('');
+            } else {
+                penaltiesContainer.innerHTML = '<p class="text-gray-500">لا توجد عقوبات مسجلة</p>';
+            }
+        }
+
+        function loadAdminDashboardStats() {
+            const students = allStudents;
+            const teachers = allTeachers;
+            const studentPenalties = allStudentPenalties;
+            const teacherLeaves = allTeacherLeaves;
+
+            document.getElementById('totalStudents').textContent = students.length;
+            document.getElementById('totalTeachers').textContent = teachers.length;
+            document.getElementById('totalStudentPenalties').textContent = studentPenalties.length;
+            document.getElementById('totalTeacherLeaves').textContent = teacherLeaves.length;
+
+            // Calculate distribution by grade
+            const distribution = {};
+            students.forEach(student => {
+                const grade = student.grade;
+                if (grade) {
+                    const gradeText = grade === '10' ? 'العاشر' : grade === '11' ? 'الحادي عشر' : grade === '12' ? 'الثاني عشر' : grade;
+                    distribution[gradeText] = (distribution[gradeText] || 0) + 1;
+                }
+            });
+            
+            const distributionHtml = Object.entries(distribution)
+                .map(([grade, count]) => `
+                    <div class="flex justify-between items-center p-3 bg-white rounded-lg shadow-sm border-r-4 border-blue-500">
+                        <span class="font-semibold text-gray-700">${grade}</span>
+                        <span class="font-bold text-blue-600 text-lg">${count} طالب</span>
+                    </div>
+                `).join('');
+            
+            document.getElementById('studentsDistribution').innerHTML = distributionHtml || '<p class="text-gray-500">لا توجد بيانات</p>';
+
+            // Show recent penalties
+            const penaltyTypes = {
+                'grade_deduction': 'حسم علامات',
+                'warning': 'إنذار',
+                'internal_transfer': 'نقل داخلي',
+                'external_transfer': 'نقل خارجي',
+                'expulsion': 'فصل من المدرسة'
+            };
+
+            if (studentPenalties.length > 0) {
+                const recentHtml = studentPenalties.slice(0, 5).map(penalty => {
+                    const student = students.find(s => s.id === penalty.student_id);
+                    return `
+                        <div class="flex justify-between items-center p-3 bg-white rounded-lg shadow-sm border-r-4 border-red-500">
+                            <div>
+                                <span class="font-semibold text-gray-800">${student?.full_name || 'طالب غير محدد'}</span>
+                                <p class="text-sm text-red-600">${penaltyTypes[penalty.type] || penalty.type}</p>
+                            </div>
+                            <span class="text-xs text-gray-500">${penalty.date}</span>
+                        </div>
+                    `;
+                }).join('');
+                
+                document.getElementById('recentPenalties').innerHTML = recentHtml;
+            } else {
+                document.getElementById('recentPenalties').innerHTML = '<p class="text-gray-500 text-center py-4">لا توجد عقوبات حديثة</p>';
+            }
+        }
+
+        function loadTeacherStudents() {
+            if (currentUser.section === 'أخرى') {
+                document.getElementById('teacherStudentsList').innerHTML = '<div class="text-center py-12"><i class="fas fa-users text-6xl text-gray-300 mb-4"></i><p class="text-gray-500 text-lg">لا توجد شعبة محددة لهذا المعلم</p></div>';
+                return;
+            }
+
+            const students = allStudents.filter(student => student.section === currentUser.section);
+            displayStudentsList(students, 'teacherStudentsList', true);
+        }
+
+        function loadAdminStudents() {
+            displayStudentsList(allStudents, 'adminStudentsList', false);
+        }
+
+        function loadAdminTeachers() {
+            displayTeachersList(allTeachers);
+        }
+
+        function displayStudentsList(students, containerId, isTeacher) {
+            const container = document.getElementById(containerId);
+            
+            if (!students || students.length === 0) {
+                container.innerHTML = '<div class="text-center py-12"><i class="fas fa-users text-6xl text-gray-300 mb-4"></i><p class="text-gray-500 text-lg">لا توجد طلبة مسجلين</p></div>';
+                return;
+            }
+
+            container.innerHTML = students.map(student => `
+                <div class="student-card p-6 mb-4" id="student-${student.id}">
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1 pr-4">
+                            <h5 class="font-bold text-xl text-blue-800 mb-3 flex items-center">
+                                <i class="fas fa-user-graduate text-blue-600 mr-3"></i>
+                                <span class="editable-field" data-field="full_name">${student.full_name}</span>
+                            </h5>
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
+                                <div class="flex items-center">
+                                    <i class="fas fa-graduation-cap text-blue-500 mr-2"></i>
+                                    <span><strong>الصف:</strong> <span class="editable-field" data-field="grade">${student.grade}</span></span>
+                                </div>
+                                <div class="flex items-center">
+                                    <i class="fas fa-users text-green-500 mr-2"></i>
+                                    <span><strong>الشعبة:</strong> <span class="editable-field" data-field="section">${student.section}</span></span>
+                                </div>
+                                <div class="flex items-center">
+                                    <i class="fas fa-calendar text-purple-500 mr-2"></i>
+                                    <span><strong>تاريخ الولادة:</strong> <span class="editable-field" data-field="birth_date">${student.birth_date}</span></span>
+                                </div>
+                                <div class="flex items-center">
+                                    <i class="fas fa-map-marker-alt text-red-500 mr-2"></i>
+                                    <span><strong>مكان الولادة:</strong> <span class="editable-field" data-field="birth_place">${student.birth_place}</span></span>
+                                </div>
+                                <div class="flex items-center">
+                                    <i class="fas fa-home text-indigo-500 mr-2"></i>
+                                    <span><strong>مكان السكن:</strong> <span class="editable-field" data-field="residence">${student.residence}</span></span>
+                                </div>
+                                <div class="flex items-center">
+                                    <i class="fas fa-pray text-yellow-500 mr-2"></i>
+                                    <span><strong>الديانة:</strong> <span class="editable-field" data-field="religion">${student.religion}</span></span>
+                                </div>
+                                <div class="flex items-center">
+                                    <i class="fas fa-flag text-pink-500 mr-2"></i>
+                                    <span><strong>الجنسية:</strong> <span class="editable-field" data-field="nationality">${student.nationality}</span></span>
+                                </div>
+                                ${!isTeacher ? `
+                                <div class="flex items-center">
+                                    <i class="fas fa-id-card text-gray-500 mr-2"></i>
+                                    <span><strong>الرقم الوطني:</strong> <span class="editable-field" data-field="national_id">${student.national_id}</span></span>
+                                </div>
+                                <div class="flex items-center">
+                                    <i class="fas fa-user text-gray-500 mr-2"></i>
+                                    <span><strong>اسم المستخدم:</strong> <span class="editable-field" data-field="username">${student.username}</span></span>
+                                </div>
+                                <div class="flex items-center">
+                                    <i class="fas fa-key text-gray-500 mr-2"></i>
+                                    <span><strong>كلمة المرور:</strong> <span class="editable-field" data-field="password">••••••</span></span>
+                                </div>
+                                ` : ''}
+                                <div class="flex items-center">
+                                    <i class="fas fa-user-tie text-teal-500 mr-2"></i>
+                                    <span><strong>ولي الأمر:</strong> <span class="editable-field" data-field="guardian_name">${student.guardian_name}</span></span>
+                                </div>
+                                <div class="flex items-center">
+                                    <i class="fas fa-briefcase text-orange-500 mr-2"></i>
+                                    <span><strong>عمل ولي الأمر:</strong> <span class="editable-field" data-field="guardian_job">${student.guardian_job}</span></span>
+                                </div>
+                                <div class="flex items-center">
+                                    <i class="fas fa-phone text-cyan-500 mr-2"></i>
+                                    <span><strong>هاتف ولي الأمر:</strong> <span class="editable-field" data-field="guardian_phone">${student.guardian_phone}</span></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex flex-col gap-2">
+                            <button onclick="editStudent('${student.id}')" class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg text-sm">
+                                <i class="fas fa-edit mr-1"></i>
+                                تعديل
+                            </button>
+                            ${!isTeacher || currentUserType === 'admin' ? `
+                            <button onclick="showStudentPenaltyModal('${student.id}')" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm">
+                                <i class="fas fa-exclamation-triangle mr-1"></i>
+                                عقوبة
+                            </button>
+                            ` : ''}
+                            <button onclick="deleteStudent('${student.id}')" class="bg-red-700 hover:bg-red-800 text-white px-4 py-2 rounded-lg text-sm">
+                                <i class="fas fa-trash mr-1"></i>
+                                حذف
+                            </button>
+                            <div class="edit-buttons gap-2">
+                                <button onclick="saveStudent('${student.id}')" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm">
+                                    <i class="fas fa-save mr-1"></i>
+                                    حفظ
+                                </button>
+                                <button onclick="cancelEdit('${student.id}')" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm">
+                                    <i class="fas fa-times mr-1"></i>
+                                    إلغاء
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function displayTeachersList(teachers) {
+            const container = document.getElementById('adminTeachersList');
+            
+            if (!teachers || teachers.length === 0) {
+                container.innerHTML = '<div class="text-center py-12"><i class="fas fa-chalkboard-teacher text-6xl text-gray-300 mb-4"></i><p class="text-gray-500 text-lg">لا توجد معلمين مسجلين</p></div>';
+                return;
+            }
+
+            container.innerHTML = teachers.map(teacher => `
+                <div class="teacher-card p-6 mb-4" id="teacher-${teacher.id}">
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1 pr-4">
+                            <h5 class="font-bold text-xl text-green-800 mb-3 flex items-center">
+                                <i class="fas fa-chalkboard-teacher text-green-600 mr-3"></i>
+                                <span class="editable-field" data-field="full_name">${teacher.full_name}</span>
+                            </h5>
+                            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
+                                <div class="flex items-center">
+                                    <i class="fas fa-phone text-blue-500 mr-2"></i>
+                                    <span><strong>رقم الهاتف:</strong> <span class="editable-field" data-field="phone">${teacher.phone}</span></span>
+                                </div>
+                                <div class="flex items-center">
+                                    <i class="fas fa-book text-purple-500 mr-2"></i>
+                                    <span><strong>المادة:</strong> <span class="editable-field" data-field="subject">${teacher.subject}</span></span>
+                                </div>
+                                <div class="flex items-center">
+                                    <i class="fas fa-briefcase text-indigo-500 mr-2"></i>
+                                    <span><strong>المسمى الوظيفي:</strong> <span class="editable-field" data-field="job_title">${teacher.job_title || 'غير محدد'}</span></span>
+                                </div>
+                                <div class="flex items-center">
+                                    <i class="fas fa-star text-yellow-500 mr-2"></i>
+                                    <span><strong>الرتبة:</strong> <span class="editable-field" data-field="rank">${teacher.rank || 'غير محدد'}</span></span>
+                                </div>
+                                <div class="flex items-center">
+                                    <i class="fas fa-users text-green-500 mr-2"></i>
+                                    <span><strong>الشعبة:</strong> <span class="editable-field" data-field="section">${teacher.section}</span></span>
+                                </div>
+                                <div class="flex items-center">
+                                    <i class="fas fa-id-card text-gray-500 mr-2"></i>
+                                    <span><strong>الرقم الوطني:</strong> <span class="editable-field" data-field="national_id">${teacher.national_id}</span></span>
+                                </div>
+                                <div class="flex items-center">
+                                    <i class="fas fa-certificate text-red-500 mr-2"></i>
+                                    <span><strong>الرقم الوزاري:</strong> <span class="editable-field" data-field="ministry_id">${teacher.ministry_id}</span></span>
+                                </div>
+                                <div class="flex items-center">
+                                    <i class="fas fa-user text-gray-500 mr-2"></i>
+                                    <span><strong>اسم المستخدم:</strong> <span class="editable-field" data-field="username">${teacher.username}</span></span>
+                                </div>
+                                <div class="flex items-center">
+                                    <i class="fas fa-key text-gray-500 mr-2"></i>
+                                    <span><strong>كلمة المرور:</strong> <span class="editable-field" data-field="password">••••••</span></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex flex-col gap-2">
+                            <button onclick="editTeacher('${teacher.id}')" class="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg text-sm">
+                                <i class="fas fa-edit mr-1"></i>
+                                تعديل
+                            </button>
+                            <button onclick="showTeacherPenaltyModal('${teacher.id}')" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg text-sm">
+                                <i class="fas fa-exclamation-triangle mr-1"></i>
+                                عقوبة
+                            </button>
+                            <button onclick="showTeacherLeaveModal('${teacher.id}')" class="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg text-sm">
+                                <i class="fas fa-calendar-times mr-1"></i>
+                                إجازة
+                            </button>
+                            <button onclick="deleteTeacher('${teacher.id}')" class="bg-red-700 hover:bg-red-800 text-white px-4 py-2 rounded-lg text-sm">
+                                <i class="fas fa-trash mr-1"></i>
+                                حذف
+                            </button>
+                            <div class="edit-buttons gap-2">
+                                <button onclick="saveTeacher('${teacher.id}')" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm">
+                                    <i class="fas fa-save mr-1"></i>
+                                    حفظ
+                                </button>
+                                <button onclick="cancelEdit('${teacher.id}')" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg text-sm">
+                                    <i class="fas fa-times mr-1"></i>
+                                    إلغاء
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function logout() {
+            currentUser = null;
+            currentUserType = null;
+            
+            document.getElementById('dashboardSection').classList.add('hidden');
+            document.getElementById('userInfo').classList.add('hidden');
+            document.getElementById('loginSection').classList.remove('hidden');
+            
+            // Clear form fields
+            document.getElementById('userType').value = '';
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+            document.getElementById('loginFields').classList.add('hidden');
+            document.getElementById('forgotPasswordMessage').textContent = '';
+            
+            showNotification('تم تسجيل الخروج بنجاح', 'success');
+        }
+
+        function showNotification(message, type) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification ${type}`;
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // Excel Export Functions
+        function exportToExcel(data, filename, sheetName) {
+            try {
+                const ws = XLSX.utils.json_to_sheet(data);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, sheetName);
+                XLSX.writeFile(wb, `${filename}.xlsx`);
+                showNotification('تم تصدير الملف بنجاح', 'success');
+            } catch (error) {
+                console.error('Export error:', error);
+                showNotification('حدث خطأ أثناء التصدير', 'error');
+            }
+        }
+
+        function exportTeacherStudents() {
+            if (currentUser.section === 'أخرى') {
+                showNotification('لا توجد شعبة محددة للتصدير', 'error');
+                return;
+            }
+            
+            const students = allStudents.filter(student => student.section === currentUser.section);
+            const exportData = students.map(student => ({
+                'الاسم الكامل': student.full_name,
+                'الصف': student.grade,
+                'الشعبة': student.section,
+                'تاريخ الولادة': student.birth_date,
+                'مكان الولادة': student.birth_place,
+                'مكان السكن': student.residence,
+                'الديانة': student.religion,
+                'الجنسية': student.nationality,
+                'الرقم الوطني': student.national_id,
+                'اسم ولي الأمر': student.guardian_name,
+                'عمل ولي الأمر': student.guardian_job,
+                'هاتف ولي الأمر': student.guardian_phone
+            }));
+            
+            exportToExcel(exportData, `طلبة_${currentUser.section}`, 'الطلبة');
+        }
+
+        function exportAllStudents() {
+            const exportData = allStudents.map(student => ({
+                'الاسم الكامل': student.full_name,
+                'الصف': student.grade,
+                'الشعبة': student.section,
+                'تاريخ الولادة': student.birth_date,
+                'مكان الولادة': student.birth_place,
+                'مكان السكن': student.residence,
+                'الديانة': student.religion,
+                'الجنسية': student.nationality,
+                'الرقم الوطني': student.national_id,
+                'اسم ولي الأمر': student.guardian_name,
+                'عمل ولي الأمر': student.guardian_job,
+                'هاتف ولي الأمر': student.guardian_phone
+            }));
+            
+            exportToExcel(exportData, 'جميع_الطلبة', 'الطلبة');
+        }
+
+        function exportStudentPenalties() {
+            const penaltyTypes = {
+                'grade_deduction': 'حسم علامات',
+                'warning': 'إنذار',
+                'internal_transfer': 'نقل داخلي',
+                'external_transfer': 'نقل خارجي',
+                'expulsion': 'فصل من المدرسة'
+            };
+
+            const exportData = allStudentPenalties.map(penalty => {
+                const student = allStudents.find(s => s.id === penalty.student_id);
+                return {
+                    'اسم الطالب': student?.full_name || 'غير محدد',
+                    'الشعبة': student?.section || 'غير محدد',
+                    'نوع العقوبة': penaltyTypes[penalty.type] || penalty.type,
+                    'التاريخ': penalty.date,
+                    'السبب': penalty.reason,
+                    'أوقعها': penalty.issued_by,
+                    'مقدار الحسم': penalty.grade_deduction_amount || ''
+                };
+            });
+            
+            exportToExcel(exportData, 'عقوبات_الطلبة', 'العقوبات');
+        }
+
+        function exportAllTeachers() {
+            const exportData = allTeachers.map(teacher => ({
+                'الاسم الكامل': teacher.full_name,
+                'رقم الهاتف': teacher.phone,
+                'المادة': teacher.subject,
+                'المسمى الوظيفي': teacher.job_title,
+                'الرتبة': teacher.rank,
+                'الشعبة المسؤول عنها': teacher.section,
+                'الرقم الوطني': teacher.national_id,
+                'الرقم الوزاري': teacher.ministry_id
+            }));
+            
+            exportToExcel(exportData, 'جميع_المعلمين', 'المعلمين');
+        }
+
+        function exportTeacherPenalties() {
+            const penaltyTypes = {
+                'warning': 'تنبيه',
+                'notice': 'إنذار',
+                'no_pay': 'عدم صرف',
+                'deduction': 'حسم 3 أيام'
+            };
+
+            const exportData = allTeacherPenalties.map(penalty => {
+                const teacher = allTeachers.find(t => t.id === penalty.teacher_id);
+                return {
+                    'اسم المعلم': teacher?.full_name || 'غير محدد',
+                    'المادة': teacher?.subject || 'غير محدد',
+                    'نوع العقوبة': penaltyTypes[penalty.type] || penalty.type,
+                    'التاريخ': penalty.date,
+                    'السبب': penalty.reason
+                };
+            });
+            
+            exportToExcel(exportData, 'عقوبات_المعلمين', 'العقوبات');
+        }
+
+        // Search Functions
+        function searchTeacherStudents() {
+            const searchTerm = document.getElementById('teacherStudentSearch').value.toLowerCase();
+            if (!searchTerm) {
+                loadTeacherStudents();
+                return;
+            }
+            
+            const students = allStudents.filter(student => 
+                student.section === currentUser.section &&
+                student.full_name.toLowerCase().includes(searchTerm)
+            );
+            displayStudentsList(students, 'teacherStudentsList', true);
+        }
+
+        function searchAdminStudents() {
+            const searchTerm = document.getElementById('adminStudentSearch').value.toLowerCase();
+            const gradeFilter = document.getElementById('adminGradeFilter').value;
+            const sectionFilter = document.getElementById('adminSectionFilter').value;
+            
+            let students = allStudents;
+            
+            if (searchTerm) {
+                students = students.filter(student => 
+                    student.full_name.toLowerCase().includes(searchTerm) ||
+                    student.section.toLowerCase().includes(searchTerm)
+                );
+            }
+            
+            if (gradeFilter) {
+                students = students.filter(student => student.grade === gradeFilter);
+            }
+            
+            if (sectionFilter) {
+                students = students.filter(student => student.section === sectionFilter);
+            }
+            
+            displayStudentsList(students, 'adminStudentsList', false);
+        }
+
+        function searchAdminTeachers() {
+            const searchTerm = document.getElementById('adminTeacherSearch').value.toLowerCase();
+            if (!searchTerm) {
+                loadAdminTeachers();
+                return;
+            }
+            
+            const teachers = allTeachers.filter(teacher => 
+                teacher.full_name.toLowerCase().includes(searchTerm) ||
+                teacher.subject.toLowerCase().includes(searchTerm)
+            );
+            displayTeachersList(teachers);
+        }
+
+        // Report Generation Functions
+        function generateStudentReport() {
+            const reportData = {
+                totalStudents: allStudents.length,
+                gradeDistribution: {},
+                sectionDistribution: {}
+            };
+            
+            allStudents.forEach(student => {
+                const grade = student.grade;
+                const section = student.section;
+                
+                reportData.gradeDistribution[grade] = (reportData.gradeDistribution[grade] || 0) + 1;
+                reportData.sectionDistribution[section] = (reportData.sectionDistribution[section] || 0) + 1;
+            });
+            
+            console.log('تقرير الطلبة:', reportData);
+            showNotification('تم إنشاء تقرير الطلبة', 'success');
+        }
+
+        function generateGradeReport() {
+            const gradeData = allStudents.map(student => ({
+                'الاسم': student.full_name,
+                'الصف': student.grade,
+                'الشعبة': student.section
+            }));
+            
+            exportToExcel(gradeData, 'توزيع_الطلبة_حسب_الصف', 'التوزيع');
+        }
+
+        function generateTeacherReport() {
+            const reportData = allTeachers.map(teacher => ({
+                'الاسم': teacher.full_name,
+                'المادة': teacher.subject,
+                'الرتبة': teacher.rank,
+                'الشعبة': teacher.section
+            }));
+            
+            exportToExcel(reportData, 'تقرير_المعلمين', 'المعلمين');
+        }
+
+        function generateLeaveReport() {
+            const leaveData = allTeacherLeaves.map(leave => {
+                const teacher = allTeachers.find(t => t.id === leave.teacher_id);
+                return {
+                    'اسم المعلم': teacher?.full_name || 'غير محدد',
+                    'نوع الإجازة': leave.type === 'sick' ? 'مرضية' : 'عرضية',
+                    'التاريخ': leave.date,
+                    'السبب': leave.reason
+                };
+            });
+            
+            exportToExcel(leaveData, 'تقرير_الإجازات', 'الإجازات');
+        }
+
+        function generatePenaltyReport() {
+            exportStudentPenalties();
+        }
+
+        function generateMonthlyPenaltyReport() {
+            const currentMonth = new Date().getMonth() + 1;
+            const currentYear = new Date().getFullYear();
+            
+            const monthlyPenalties = allStudentPenalties.filter(penalty => {
+                const penaltyDate = new Date(penalty.date);
+                return penaltyDate.getMonth() + 1 === currentMonth && 
+                       penaltyDate.getFullYear() === currentYear;
+            });
+            
+            const exportData = monthlyPenalties.map(penalty => {
+                const student = allStudents.find(s => s.id === penalty.student_id);
+                return {
+                    'اسم الطالب': student?.full_name || 'غير محدد',
+                    'الشعبة': student?.section || 'غير محدد',
+                    'نوع العقوبة': penalty.type,
+                    'التاريخ': penalty.date,
+                    'السبب': penalty.reason
+                };
+            });
+            
+            exportToExcel(exportData, `عقوبات_شهر_${currentMonth}_${currentYear}`, 'العقوبات الشهرية');
+        }
+
+        // Penalty and Delete Functions
+        function showStudentPenaltyModal(studentId) {
+            const student = allStudents.find(s => s.id === studentId);
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 modal-backdrop flex items-center justify-center z-50';
+            modal.innerHTML = `
+                <div class="modal-content bg-white rounded-lg shadow-xl p-6 max-w-2xl w-full mx-4">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-2xl font-bold text-gray-800">
+                            <i class="fas fa-exclamation-triangle text-red-600 mr-3"></i>
+                            إضافة عقوبة للطالب: ${student.full_name}
+                        </h3>
+                        <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700">
+                            <i class="fas fa-times text-xl"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-gray-700 font-semibold mb-2">نوع العقوبة</label>
+                            <select id="penaltyType" class="w-full p-3 border border-gray-300 rounded-lg" onchange="toggleGradeDeduction()">
+                                <option value="">اختر نوع العقوبة</option>
+                                <option value="grade_deduction">حسم علامات</option>
+                                <option value="warning">إنذار</option>
+                                <option value="internal_transfer">نقل داخلي</option>
+                                <option value="external_transfer">نقل خارجي</option>
+                                <option value="expulsion">فصل من المدرسة</option>
+                            </select>
+                        </div>
+                        
+                        <div id="gradeDeductionField" class="hidden">
+                            <label class="block text-gray-700 font-semibold mb-2">مقدار الحسم (علامة)</label>
+                            <input type="number" id="gradeDeductionAmount" class="w-full p-3 border border-gray-300 rounded-lg" min="1" max="100">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 font-semibold mb-2">السبب</label>
+                            <textarea id="penaltyReason" class="w-full p-3 border border-gray-300 rounded-lg" rows="3" placeholder="اكتب سبب العقوبة..."></textarea>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 font-semibold mb-2">التاريخ</label>
+                            <input type="date" id="penaltyDate" class="w-full p-3 border border-gray-300 rounded-lg" value="${new Date().toISOString().split('T')[0]}">
+                        </div>
+                        
+                        <div class="flex gap-4 pt-4">
+                            <button onclick="addStudentPenalty('${studentId}')" class="flex-1 bg-red-600 text-white py-3 rounded-lg hover:bg-red-700">
+                                <i class="fas fa-exclamation-triangle mr-2"></i>
+                                إضافة العقوبة
+                            </button>
+                            <button onclick="closeModal()" class="flex-1 bg-gray-600 text-white py-3 rounded-lg hover:bg-gray-700">
+                                <i class="fas fa-times mr-2"></i>
+                                إلغاء
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+        }
+
+        function toggleGradeDeduction() {
+            const penaltyType = document.getElementById('penaltyType').value;
+            const gradeField = document.getElementById('gradeDeductionField');
+            
+            if (penaltyType === 'grade_deduction') {
+                gradeField.classList.remove('hidden');
+            } else {
+                gradeField.classList.add('hidden');
+            }
+        }
+
+        async function addStudentPenalty(studentId) {
+            const penaltyData = {
+                student_id: studentId,
+                type: document.getElementById('penaltyType').value,
+                reason: document.getElementById('penaltyReason').value,
+                date: document.getElementById('penaltyDate').value,
+                issued_by: currentUser.full_name,
+                created_at: new Date().toISOString()
+            };
+
+            if (penaltyData.type === 'grade_deduction') {
+                penaltyData.grade_deduction_amount = document.getElementById('gradeDeductionAmount').value;
+            }
+
+            if (!penaltyData.type || !penaltyData.reason) {
+                showNotification('يرجى ملء جميع الحقول المطلوبة', 'error');
+                return;
+            }
+
+            let supabaseSuccess = false;
+
+            try {
+                showSyncIndicator('جاري حفظ العقوبة في قاعدة البيانات...');
+                const { data, error } = await supabase
+                    .from('student_penalties')
+                    .insert([penaltyData])
+                    .select();
+
+                if (error) throw error;
+
+                allStudentPenalties.push(data[0]);
+                supabaseSuccess = true;
+                showNotification('✅ تم حفظ العقوبة في قاعدة البيانات بنجاح', 'success');
+
+                // Try to sync with Google Sheets
+                try {
+                    showSyncIndicator('جاري المزامنة مع Google Sheets...');
+                    const student = allStudents.find(s => s.id === penaltyData.student_id);
+                    const penaltyWithStudentInfo = {
+                        ...penaltyData,
+                        student_name: student?.full_name || 'غير محدد',
+                        student_section: student?.section || 'غير محدد'
+                    };
+                    await syncWithGoogleSheets('student_penalty', penaltyWithStudentInfo);
+                    showNotification('✅ تم حفظ العقوبة في Google Sheets بنجاح', 'success');
+                } catch (googleError) {
+                    console.error('Google Sheets sync error:', googleError);
+                    showNotification('⚠️ تم حفظ العقوبة في قاعدة البيانات، لكن فشل في Google Sheets', 'error');
+                }
+
+            } catch (error) {
+                console.error('Add penalty error:', error);
+                showNotification('❌ فشل في حفظ العقوبة: ' + (error.message || 'خطأ غير معروف'), 'error');
+            }
+
+            hideSyncIndicator();
+
+            if (supabaseSuccess) {
+                closeModal();
+            }
+        }
+
+        function showTeacherPenaltyModal(teacherId) {
+            const teacher = allTeachers.find(t => t.id === teacherId);
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 modal-backdrop flex items-center justify-center z-50';
+            modal.innerHTML = `
+                <div class="modal-content bg-white rounded-lg shadow-xl p-6 max-w-2xl w-full mx-4">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-2xl font-bold text-gray-800">
+                            <i class="fas fa-exclamation-triangle text-red-600 mr-3"></i>
+                            إضافة عقوبة للمعلم: ${teacher.full_name}
+                        </h3>
+                        <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700">
+                            <i class="fas fa-times text-xl"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-gray-700 font-semibold mb-2">نوع العقوبة</label>
+                            <select id="teacherPenaltyType" class="w-full p-3 border border-gray-300 rounded-lg">
+                                <option value="">اختر نوع العقوبة</option>
+                                <option value="warning">تنبيه</option>
+                                <option value="notice">إنذار</option>
+                                <option value="no_pay">عدم صرف</option>
+                                <option value="deduction">حسم 3 أيام</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 font-semibold mb-2">السبب</label>
+                            <textarea id="teacherPenaltyReason" class="w-full p-3 border border-gray-300 rounded-lg" rows="3" placeholder="اكتب سبب العقوبة..."></textarea>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 font-semibold mb-2">التاريخ</label>
+                            <input type="date" id="teacherPenaltyDate" class="w-full p-3 border border-gray-300 rounded-lg" value="${new Date().toISOString().split('T')[0]}">
+                        </div>
+                        
+                        <div class="flex gap-4 pt-4">
+                            <button onclick="addTeacherPenalty('${teacherId}')" class="flex-1 bg-red-600 text-white py-3 rounded-lg hover:bg-red-700">
+                                <i class="fas fa-exclamation-triangle mr-2"></i>
+                                إضافة العقوبة
+                            </button>
+                            <button onclick="closeModal()" class="flex-1 bg-gray-600 text-white py-3 rounded-lg hover:bg-gray-700">
+                                <i class="fas fa-times mr-2"></i>
+                                إلغاء
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+        }
+
+        async function addTeacherPenalty(teacherId) {
+            const penaltyData = {
+                teacher_id: teacherId,
+                type: document.getElementById('teacherPenaltyType').value,
+                reason: document.getElementById('teacherPenaltyReason').value,
+                date: document.getElementById('teacherPenaltyDate').value,
+                created_at: new Date().toISOString()
+            };
+
+            if (!penaltyData.type || !penaltyData.reason) {
+                showNotification('يرجى ملء جميع الحقول المطلوبة', 'error');
+                return;
+            }
+
+            let supabaseSuccess = false;
+
+            try {
+                showSyncIndicator('جاري حفظ عقوبة المعلم في قاعدة البيانات...');
+                const { data, error } = await supabase
+                    .from('teacher_penalties')
+                    .insert([penaltyData])
+                    .select();
+
+                if (error) throw error;
+
+                allTeacherPenalties.push(data[0]);
+                supabaseSuccess = true;
+                showNotification('✅ تم حفظ عقوبة المعلم في قاعدة البيانات بنجاح', 'success');
+
+                // Try to sync with Google Sheets
+                try {
+                    showSyncIndicator('جاري المزامنة مع Google Sheets...');
+                    const teacher = allTeachers.find(t => t.id === penaltyData.teacher_id);
+                    const penaltyWithTeacherInfo = {
+                        ...penaltyData,
+                        teacher_name: teacher?.full_name || 'غير محدد',
+                        teacher_subject: teacher?.subject || 'غير محدد'
+                    };
+                    await syncWithGoogleSheets('teacher_penalty', penaltyWithTeacherInfo);
+                    showNotification('✅ تم حفظ عقوبة المعلم في Google Sheets بنجاح', 'success');
+                } catch (googleError) {
+                    console.error('Google Sheets sync error:', googleError);
+                    showNotification('⚠️ تم حفظ عقوبة المعلم في قاعدة البيانات، لكن فشل في Google Sheets', 'error');
+                }
+
+            } catch (error) {
+                console.error('Add teacher penalty error:', error);
+                showNotification('❌ فشل في حفظ عقوبة المعلم: ' + (error.message || 'خطأ غير معروف'), 'error');
+            }
+
+            hideSyncIndicator();
+
+            if (supabaseSuccess) {
+                closeModal();
+            }
+        }
+
+        function showTeacherLeaveModal(teacherId) {
+            const teacher = allTeachers.find(t => t.id === teacherId);
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 modal-backdrop flex items-center justify-center z-50';
+            modal.innerHTML = `
+                <div class="modal-content bg-white rounded-lg shadow-xl p-6 max-w-2xl w-full mx-4">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-2xl font-bold text-gray-800">
+                            <i class="fas fa-calendar-times text-orange-600 mr-3"></i>
+                            إضافة إجازة للمعلم: ${teacher.full_name}
+                        </h3>
+                        <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700">
+                            <i class="fas fa-times text-xl"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-gray-700 font-semibold mb-2">نوع الإجازة</label>
+                            <select id="leaveType" class="w-full p-3 border border-gray-300 rounded-lg">
+                                <option value="">اختر نوع الإجازة</option>
+                                <option value="sick">إجازة مرضية</option>
+                                <option value="casual">إجازة عرضية</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 font-semibold mb-2">السبب</label>
+                            <textarea id="leaveReason" class="w-full p-3 border border-gray-300 rounded-lg" rows="3" placeholder="اكتب سبب الإجازة..."></textarea>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 font-semibold mb-2">التاريخ</label>
+                            <input type="date" id="leaveDate" class="w-full p-3 border border-gray-300 rounded-lg" value="${new Date().toISOString().split('T')[0]}">
+                        </div>
+                        
+                        <div class="flex gap-4 pt-4">
+                            <button onclick="addTeacherLeave('${teacherId}')" class="flex-1 bg-orange-600 text-white py-3 rounded-lg hover:bg-orange-700">
+                                <i class="fas fa-calendar-times mr-2"></i>
+                                إضافة الإجازة
+                            </button>
+                            <button onclick="closeModal()" class="flex-1 bg-gray-600 text-white py-3 rounded-lg hover:bg-gray-700">
+                                <i class="fas fa-times mr-2"></i>
+                                إلغاء
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+        }
+
+        async function addTeacherLeave(teacherId) {
+            const leaveData = {
+                teacher_id: teacherId,
+                type: document.getElementById('leaveType').value,
+                reason: document.getElementById('leaveReason').value,
+                date: document.getElementById('leaveDate').value,
+                created_at: new Date().toISOString()
+            };
+
+            if (!leaveData.type || !leaveData.reason) {
+                showNotification('يرجى ملء جميع الحقول المطلوبة', 'error');
+                return;
+            }
+
+            let supabaseSuccess = false;
+
+            try {
+                showSyncIndicator('جاري حفظ إجازة المعلم في قاعدة البيانات...');
+                const { data, error } = await supabase
+                    .from('teacher_leaves')
+                    .insert([leaveData])
+                    .select();
+
+                if (error) throw error;
+
+                allTeacherLeaves.push(data[0]);
+                supabaseSuccess = true;
+                showNotification('✅ تم حفظ إجازة المعلم في قاعدة البيانات بنجاح', 'success');
+
+                // Try to sync with Google Sheets
+                try {
+                    showSyncIndicator('جاري المزامنة مع Google Sheets...');
+                    const teacher = allTeachers.find(t => t.id === leaveData.teacher_id);
+                    const leaveWithTeacherInfo = {
+                        ...leaveData,
+                        teacher_name: teacher?.full_name || 'غير محدد',
+                        teacher_subject: teacher?.subject || 'غير محدد'
+                    };
+                    await syncWithGoogleSheets('teacher_leave', leaveWithTeacherInfo);
+                    showNotification('✅ تم حفظ إجازة المعلم في Google Sheets بنجاح', 'success');
+                } catch (googleError) {
+                    console.error('Google Sheets sync error:', googleError);
+                    showNotification('⚠️ تم حفظ إجازة المعلم في قاعدة البيانات، لكن فشل في Google Sheets', 'error');
+                }
+
+            } catch (error) {
+                console.error('Add leave error:', error);
+                showNotification('❌ فشل في حفظ إجازة المعلم: ' + (error.message || 'خطأ غير معروف'), 'error');
+            }
+
+            hideSyncIndicator();
+
+            if (supabaseSuccess) {
+                closeModal();
+            }
+        }
+
+        async function deleteStudent(studentId) {
+            const student = allStudents.find(s => s.id === studentId);
+            
+            if (!confirm(`هل أنت متأكد من حذف الطالب: ${student.full_name}؟\nهذا الإجراء لا يمكن التراجع عنه.`)) {
+                return;
+            }
+
+            showSyncIndicator('جاري حذف الطالب...');
+
+            try {
+                const { error } = await supabase
+                    .from('students')
+                    .delete()
+                    .eq('id', studentId);
+
+                if (error) throw error;
+
+                // Remove from local data
+                const index = allStudents.findIndex(s => s.id === studentId);
+                if (index !== -1) {
+                    allStudents.splice(index, 1);
+                }
+
+                hideSyncIndicator();
+                showNotification('تم حذف الطالب بنجاح', 'success');
+                
+                // Refresh the display
+                if (currentUserType === 'teacher') {
+                    loadTeacherStudents();
+                } else {
+                    loadAdminStudents();
+                }
+                
+            } catch (error) {
+                console.error('Delete student error:', error);
+                hideSyncIndicator();
+                showNotification('حدث خطأ أثناء حذف الطالب', 'error');
+            }
+        }
+
+        async function deleteTeacher(teacherId) {
+            const teacher = allTeachers.find(t => t.id === teacherId);
+            
+            if (!confirm(`هل أنت متأكد من حذف المعلم: ${teacher.full_name}؟\nهذا الإجراء لا يمكن التراجع عنه.`)) {
+                return;
+            }
+
+            showSyncIndicator('جاري حذف المعلم...');
+
+            try {
+                const { error } = await supabase
+                    .from('teachers')
+                    .delete()
+                    .eq('id', teacherId);
+
+                if (error) throw error;
+
+                // Remove from local data
+                const index = allTeachers.findIndex(t => t.id === teacherId);
+                if (index !== -1) {
+                    allTeachers.splice(index, 1);
+                }
+
+                hideSyncIndicator();
+                showNotification('تم حذف المعلم بنجاح', 'success');
+                loadAdminTeachers();
+                
+            } catch (error) {
+                console.error('Delete teacher error:', error);
+                hideSyncIndicator();
+                showNotification('حدث خطأ أثناء حذف المعلم', 'error');
+            }
+        }
+
+        // Registration Function
+        async function register() {
+            const userType = document.getElementById('regUserType').value;
+            
+            if (!userType) {
+                showNotification('يرجى اختيار نوع الحساب', 'error');
+                return;
+            }
+
+            const username = document.getElementById('regUsername').value;
+            const password = document.getElementById('regPassword').value;
+
+            if (!username || !password) {
+                showNotification('يرجى إدخال اسم المستخدم وكلمة المرور', 'error');
+                return;
+            }
+
+            // Simple username check without calling the function
+            const existsInStudents = allStudents.some(student => student.username === username);
+            const existsInTeachers = allTeachers.some(teacher => teacher.username === username);
+            const existsInAdmins = allAdmins.some(admin => admin.username === username);
+
+            if (existsInStudents || existsInTeachers || existsInAdmins) {
+                showNotification('اسم المستخدم موجود بالفعل', 'error');
+                return;
+            }
+
+            showSyncIndicator('جاري إنشاء الحساب...');
+
+            let supabaseSuccess = false;
+            let userData = null;
+
+            try {
+                userData = {
+                    username: username,
+                    password: password,
+                    created_at: new Date().toISOString()
+                };
+
+                if (userType === 'student') {
+                    const nationalId = document.getElementById('nationalId').value;
+                    
+                    if (!nationalId || nationalId.length !== 10) {
+                        showNotification('يرجى إدخال رقم وطني صحيح (10 أرقام)', 'error');
+                        hideSyncIndicator();
+                        return;
+                    }
+
+                    // Check national ID availability
+                    const existsInStudentsNational = allStudents.some(student => student.national_id === nationalId);
+                    const existsInTeachersNational = allTeachers.some(teacher => teacher.national_id === nationalId);
+                    
+                    if (existsInStudentsNational || existsInTeachersNational) {
+                        showNotification('الرقم الوطني موجود بالفعل', 'error');
+                        hideSyncIndicator();
+                        return;
+                    }
+
+                    // Validate required fields
+                    const name1 = document.getElementById('studentName1').value;
+                    const name2 = document.getElementById('studentName2').value;
+                    const name3 = document.getElementById('studentName3').value;
+                    const name4 = document.getElementById('studentName4').value;
+                    const grade = document.getElementById('studentGrade').value;
+                    const section = document.getElementById('studentSection').value;
+
+                    if (!name1 || !name2 || !name3 || !name4) {
+                        showNotification('يرجى إدخال الاسم الكامل', 'error');
+                        hideSyncIndicator();
+                        return;
+                    }
+
+                    if (!grade || !section) {
+                        showNotification('يرجى اختيار الصف والشعبة', 'error');
+                        hideSyncIndicator();
+                        return;
+                    }
+
+                    userData = {
+                        ...userData,
+                        full_name: `${name1} ${name2} ${name3} ${name4}`,
+                        name1: name1,
+                        name2: name2,
+                        name3: name3,
+                        name4: name4,
+                        grade: grade,
+                        section: section,
+                        birth_date: `${document.getElementById('birthDay').value || ''}/${document.getElementById('birthMonth').value || ''}/${document.getElementById('birthYear').value || ''}`,
+                        birth_place: document.getElementById('birthPlace').value || '',
+                        residence: document.getElementById('residence').value || '',
+                        religion: document.getElementById('religion').value || '',
+                        nationality: document.getElementById('nationality').value || '',
+                        national_id: nationalId,
+                        guardian_name: `${document.getElementById('guardianName1').value || ''} ${document.getElementById('guardianName2').value || ''} ${document.getElementById('guardianName3').value || ''} ${document.getElementById('guardianName4').value || ''}`,
+                        guardian_job: document.getElementById('guardianJob').value || '',
+                        guardian_phone: document.getElementById('guardianPhone').value || ''
+                    };
+
+                    // Try to save to Supabase
+                    try {
+                        showSyncIndicator('جاري الحفظ في قاعدة البيانات...');
+                        const { data, error } = await supabase
+                            .from('students')
+                            .insert([userData])
+                            .select();
+
+                        if (error) throw error;
+
+                        supabaseSuccess = true;
+                        
+                        // Update local data
+                        allStudents.push(data[0]);
+                        
+                    } catch (supabaseError) {
+                        console.error('Supabase error:', supabaseError);
+                        // Continue without throwing - we'll handle this below
+                    }
+                    
+                } else if (userType === 'teacher') {
+                    const nationalId = document.getElementById('teacherNationalId').value;
+                    
+                    if (!nationalId || nationalId.length !== 10) {
+                        showNotification('يرجى إدخال رقم وطني صحيح (10 أرقام)', 'error');
+                        hideSyncIndicator();
+                        return;
+                    }
+
+                    // Check national ID availability for teachers
+                    const existsInStudentsTeacher = allStudents.some(student => student.national_id === nationalId);
+                    const existsInTeachersTeacher = allTeachers.some(teacher => teacher.national_id === nationalId);
+
+                    if (existsInStudentsTeacher || existsInTeachersTeacher) {
+                        showNotification('الرقم الوطني موجود بالفعل', 'error');
+                        hideSyncIndicator();
+                        return;
+                    }
+
+                    // Validate required fields
+                    const name1 = document.getElementById('teacherName1').value;
+                    const name2 = document.getElementById('teacherName2').value;
+                    const name3 = document.getElementById('teacherName3').value;
+                    const name4 = document.getElementById('teacherName4').value;
+                    const subject = document.getElementById('teacherSubject').value;
+
+                    if (!name1 || !name2 || !name3 || !name4) {
+                        showNotification('يرجى إدخال الاسم الكامل', 'error');
+                        hideSyncIndicator();
+                        return;
+                    }
+
+                    if (!subject) {
+                        showNotification('يرجى اختيار المادة', 'error');
+                        hideSyncIndicator();
+                        return;
+                    }
+
+                    userData = {
+                        ...userData,
+                        full_name: `${name1} ${name2} ${name3} ${name4}`,
+                        name1: name1,
+                        name2: name2,
+                        name3: name3,
+                        name4: name4,
+                        phone: document.getElementById('teacherPhone').value || '',
+                        subject: subject,
+                        job_title: document.getElementById('teacherJobTitle').value || '',
+                        rank: document.getElementById('teacherRank').value || '',
+                        section: document.getElementById('teacherSection').value || '',
+                        national_id: nationalId,
+                        ministry_id: document.getElementById('teacherMinistryId').value || ''
+                    };
+
+                    // Try to save to Supabase
+                    try {
+                        showSyncIndicator('جاري الحفظ في قاعدة البيانات...');
+                        const { data, error } = await supabase
+                            .from('teachers')
+                            .insert([userData])
+                            .select();
+
+                        if (error) throw error;
+
+                        supabaseSuccess = true;
+                        
+                        // Update local data
+                        allTeachers.push(data[0]);
+                        
+                    } catch (supabaseError) {
+                        console.error('Supabase error:', supabaseError);
+                        // Continue without throwing - we'll handle this below
+                    }
+                }
+
+                hideSyncIndicator();
+
+                // Show final status
+                if (supabaseSuccess) {
+                    showNotification('🎉 تم إنشاء الحساب بنجاح', 'success');
+                    updateLoginPageStats();
+                    showLogin();
+                } else {
+                    showNotification('❌ حدث خطأ أثناء إنشاء الحساب، يرجى المحاولة مرة أخرى', 'error');
+                }
+                
+            } catch (error) {
+                console.error('Registration error:', error);
+                hideSyncIndicator();
+                showNotification('❌ حدث خطأ أثناء إنشاء الحساب: ' + (error.message || 'خطأ غير معروف'), 'error');
+            }
+        }
+
+        // Edit Functions
+        let originalData = {};
+
+        function editStudent(studentId) {
+            const card = document.getElementById(`student-${studentId}`);
+            const student = allStudents.find(s => s.id === studentId);
+            
+            originalData[studentId] = { ...student };
+            
+            card.classList.add('edit-mode');
+            
+            const editableFields = card.querySelectorAll('.editable-field');
+            editableFields.forEach(field => {
+                const fieldName = field.getAttribute('data-field');
+                const currentValue = fieldName === 'password' ? student[fieldName] : field.textContent;
+                
+                if (fieldName === 'grade') {
+                    field.innerHTML = `
+                        <select class="border rounded px-2 py-1 text-sm">
+                            <option value="10" ${currentValue === '10' ? 'selected' : ''}>العاشر</option>
+                            <option value="11" ${currentValue === '11' ? 'selected' : ''}>الحادي عشر أكاديمي</option>
+                            <option value="12" ${currentValue === '12' ? 'selected' : ''}>الثاني عشر أكاديمي</option>
+                        </select>
+                    `;
+                } else if (fieldName === 'section') {
+                    const arabicLetters = ['أ', 'ب', 'ج', 'د', 'هـ', 'و', 'ز', 'ح'];
+                    let options = '';
+                    for (let i = 0; i < 4; i++) options += `<option value="العاشر ${arabicLetters[i]}" ${currentValue === `العاشر ${arabicLetters[i]}` ? 'selected' : ''}>العاشر ${arabicLetters[i]}</option>`;
+                    for (let i = 0; i < 8; i++) options += `<option value="الحادي عشر ${arabicLetters[i]}" ${currentValue === `الحادي عشر ${arabicLetters[i]}` ? 'selected' : ''}>الحادي عشر ${arabicLetters[i]}</option>`;
+                    for (let i = 0; i < 6; i++) options += `<option value="الثاني عشر ${arabicLetters[i]}" ${currentValue === `الثاني عشر ${arabicLetters[i]}` ? 'selected' : ''}>الثاني عشر ${arabicLetters[i]}</option>`;
+                    
+                    field.innerHTML = `<select class="border rounded px-2 py-1 text-sm">${options}</select>`;
+                } else if (fieldName === 'religion') {
+                    field.innerHTML = `
+                        <select class="border rounded px-2 py-1 text-sm">
+                            <option value="الإسلام" ${currentValue === 'الإسلام' ? 'selected' : ''}>الإسلام</option>
+                            <option value="المسيحية" ${currentValue === 'المسيحية' ? 'selected' : ''}>المسيحية</option>
+                            <option value="أخرى" ${currentValue === 'أخرى' ? 'selected' : ''}>أخرى</option>
+                        </select>
+                    `;
+                } else if (fieldName === 'nationality') {
+                    field.innerHTML = `
+                        <select class="border rounded px-2 py-1 text-sm">
+                            <option value="أردنية" ${currentValue === 'أردنية' ? 'selected' : ''}>أردنية</option>
+                            <option value="فلسطينية" ${currentValue === 'فلسطينية' ? 'selected' : ''}>فلسطينية</option>
+                            <option value="سورية" ${currentValue === 'سورية' ? 'selected' : ''}>سورية</option>
+                            <option value="عراقية" ${currentValue === 'عراقية' ? 'selected' : ''}>عراقية</option>
+                            <option value="لبنانية" ${currentValue === 'لبنانية' ? 'selected' : ''}>لبنانية</option>
+                            <option value="سعودية" ${currentValue === 'سعودية' ? 'selected' : ''}>سعودية</option>
+                            <option value="مصرية" ${currentValue === 'مصرية' ? 'selected' : ''}>مصرية</option>
+                            <option value="أخرى" ${currentValue === 'أخرى' ? 'selected' : ''}>أخرى</option>
+                        </select>
+                    `;
+                } else {
+                    field.innerHTML = `<input type="${fieldName === 'password' ? 'password' : 'text'}" value="${currentValue}" class="border rounded px-2 py-1 text-sm w-full">`;
+                }
+            });
+        }
+
+        function editTeacher(teacherId) {
+            const card = document.getElementById(`teacher-${teacherId}`);
+            const teacher = allTeachers.find(t => t.id === teacherId);
+            
+            originalData[teacherId] = { ...teacher };
+            
+            card.classList.add('edit-mode');
+            
+            const editableFields = card.querySelectorAll('.editable-field');
+            editableFields.forEach(field => {
+                const fieldName = field.getAttribute('data-field');
+                const currentValue = fieldName === 'password' ? teacher[fieldName] : field.textContent;
+                
+                if (fieldName === 'subject') {
+                    field.innerHTML = `
+                        <select class="border rounded px-2 py-1 text-sm">
+                            <option value="اللغة العربية" ${currentValue === 'اللغة العربية' ? 'selected' : ''}>اللغة العربية</option>
+                            <option value="اللغة الإنجليزية" ${currentValue === 'اللغة الإنجليزية' ? 'selected' : ''}>اللغة الإنجليزية</option>
+                            <option value="الرياضيات" ${currentValue === 'الرياضيات' ? 'selected' : ''}>الرياضيات</option>
+                            <option value="الفيزياء" ${currentValue === 'الفيزياء' ? 'selected' : ''}>الفيزياء</option>
+                            <option value="الكيمياء" ${currentValue === 'الكيمياء' ? 'selected' : ''}>الكيمياء</option>
+                            <option value="الأحياء" ${currentValue === 'الأحياء' ? 'selected' : ''}>الأحياء</option>
+                            <option value="علوم الأرض والبيئة" ${currentValue === 'علوم الأرض والبيئة' ? 'selected' : ''}>علوم الأرض والبيئة</option>
+                            <option value="التاريخ" ${currentValue === 'التاريخ' ? 'selected' : ''}>التاريخ</option>
+                            <option value="الجغرافيا" ${currentValue === 'الجغرافيا' ? 'selected' : ''}>الجغرافيا</option>
+                            <option value="التربية الإسلامية" ${currentValue === 'التربية الإسلامية' ? 'selected' : ''}>التربية الإسلامية</option>
+                            <option value="التربية المسيحية" ${currentValue === 'التربية المسيحية' ? 'selected' : ''}>التربية المسيحية</option>
+                            <option value="الثقافة العامة" ${currentValue === 'الثقافة العامة' ? 'selected' : ''}>الثقافة العامة</option>
+                            <option value="الحاسوب" ${currentValue === 'الحاسوب' ? 'selected' : ''}>الحاسوب</option>
+                            <option value="التربية الرياضية" ${currentValue === 'التربية الرياضية' ? 'selected' : ''}>التربية الرياضية</option>
+                            <option value="التربية الفنية" ${currentValue === 'التربية الفنية' ? 'selected' : ''}>التربية الفنية</option>
+                            <option value="التربية المهنية" ${currentValue === 'التربية المهنية' ? 'selected' : ''}>التربية المهنية</option>
+                            <option value="اللغة الفرنسية" ${currentValue === 'اللغة الفرنسية' ? 'selected' : ''}>اللغة الفرنسية</option>
+                            <option value="أخرى" ${currentValue === 'أخرى' ? 'selected' : ''}>أخرى</option>
+                        </select>
+                    `;
+                } else if (fieldName === 'job_title') {
+                    field.innerHTML = `
+                        <select class="border rounded px-2 py-1 text-sm">
+                            <option value="معلم" ${currentValue === 'معلم' ? 'selected' : ''}>معلم</option>
+                            <option value="أمين مكتبة" ${currentValue === 'أمين مكتبة' ? 'selected' : ''}>أمين مكتبة</option>
+                            <option value="سكرتير" ${currentValue === 'سكرتير' ? 'selected' : ''}>سكرتير</option>
+                            <option value="قيّم مختبر حاسوب" ${currentValue === 'قيّم مختبر حاسوب' ? 'selected' : ''}>قيّم مختبر حاسوب</option>
+                            <option value="معلم اضافي" ${currentValue === 'معلم اضافي' ? 'selected' : ''}>معلم اضافي</option>
+                        </select>
+                    `;
+                } else if (fieldName === 'rank') {
+                    field.innerHTML = `
+                        <select class="border rounded px-2 py-1 text-sm">
+                            <option value="معلم اضافي" ${currentValue === 'معلم اضافي' ? 'selected' : ''}>معلم اضافي</option>
+                            <option value="معلم مساعد" ${currentValue === 'معلم مساعد' ? 'selected' : ''}>معلم مساعد</option>
+                            <option value="معلم" ${currentValue === 'معلم' ? 'selected' : ''}>معلم</option>
+                            <option value="معلم أول" ${currentValue === 'معلم أول' ? 'selected' : ''}>معلم أول</option>
+                            <option value="معلم قائد" ${currentValue === 'معلم قائد' ? 'selected' : ''}>معلم قائد</option>
+                            <option value="معلم خبير" ${currentValue === 'معلم خبير' ? 'selected' : ''}>معلم خبير</option>
+                        </select>
+                    `;
+                } else {
+                    field.innerHTML = `<input type="${fieldName === 'password' ? 'password' : 'text'}" value="${currentValue}" class="border rounded px-2 py-1 text-sm w-full">`;
+                }
+            });
+        }
+
+        async function saveStudent(studentId) {
+            showSyncIndicator('جاري حفظ التعديلات...');
+            
+            const card = document.getElementById(`student-${studentId}`);
+            const editableFields = card.querySelectorAll('.editable-field');
+            
+            const updatedData = {};
+            editableFields.forEach(field => {
+                const fieldName = field.getAttribute('data-field');
+                const input = field.querySelector('input, select');
+                updatedData[fieldName] = input.value;
+            });
+
+            try {
+                const { error } = await supabase
+                    .from('students')
+                    .update(updatedData)
+                    .eq('id', studentId);
+
+                if (error) throw error;
+
+                // Update local data
+                const studentIndex = allStudents.findIndex(s => s.id === studentId);
+                if (studentIndex !== -1) {
+                    allStudents[studentIndex] = { ...allStudents[studentIndex], ...updatedData };
+                }
+
+                hideSyncIndicator();
+                showNotification('تم حفظ التعديلات بنجاح', 'success');
+                
+                // Refresh the display
+                if (currentUserType === 'teacher') {
+                    loadTeacherStudents();
+                } else {
+                    loadAdminStudents();
+                }
+                
+            } catch (error) {
+                console.error('Save error:', error);
+                hideSyncIndicator();
+                showNotification('حدث خطأ أثناء الحفظ', 'error');
+            }
+        }
+
+        async function saveTeacher(teacherId) {
+            showSyncIndicator('جاري حفظ التعديلات...');
+            
+            const card = document.getElementById(`teacher-${teacherId}`);
+            const editableFields = card.querySelectorAll('.editable-field');
+            
+            const updatedData = {};
+            editableFields.forEach(field => {
+                const fieldName = field.getAttribute('data-field');
+                const input = field.querySelector('input, select');
+                updatedData[fieldName] = input.value;
+            });
+
+            try {
+                const { error } = await supabase
+                    .from('teachers')
+                    .update(updatedData)
+                    .eq('id', teacherId);
+
+                if (error) throw error;
+
+                // Update local data
+                const teacherIndex = allTeachers.findIndex(t => t.id === teacherId);
+                if (teacherIndex !== -1) {
+                    allTeachers[teacherIndex] = { ...allTeachers[teacherIndex], ...updatedData };
+                }
+
+                hideSyncIndicator();
+                showNotification('تم حفظ التعديلات بنجاح', 'success');
+                loadAdminTeachers();
+                
+            } catch (error) {
+                console.error('Save error:', error);
+                hideSyncIndicator();
+                showNotification('حدث خطأ أثناء الحفظ', 'error');
+            }
+        }
+
+        function cancelEdit(id) {
+            const card = document.getElementById(`student-${id}`) || document.getElementById(`teacher-${id}`);
+            card.classList.remove('edit-mode');
+            
+            // Restore original display
+            if (currentUserType === 'teacher') {
+                loadTeacherStudents();
+            } else if (card.id.includes('student')) {
+                loadAdminStudents();
+            } else {
+                loadAdminTeachers();
+            }
+        }
+
+        // Add Student Modal
+        function showAddStudentModal() {
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 modal-backdrop flex items-center justify-center z-50';
+            modal.innerHTML = `
+                <div class="modal-content bg-white rounded-lg shadow-xl p-6 max-w-4xl w-full mx-4 max-h-screen overflow-y-auto">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-2xl font-bold text-gray-800">
+                            <i class="fas fa-user-plus text-green-600 mr-3"></i>
+                            تسجيل طالب جديد
+                        </h3>
+                        <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700">
+                            <i class="fas fa-times text-xl"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <input type="text" id="newStudentName1" class="p-3 border border-gray-300 rounded-lg" placeholder="الاسم الأول">
+                            <input type="text" id="newStudentName2" class="p-3 border border-gray-300 rounded-lg" placeholder="اسم الأب">
+                            <input type="text" id="newStudentName3" class="p-3 border border-gray-300 rounded-lg" placeholder="اسم الجد">
+                            <input type="text" id="newStudentName4" class="p-3 border border-gray-300 rounded-lg" placeholder="اسم العائلة">
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-gray-700 font-semibold mb-2">الصف</label>
+                                <select id="newStudentGrade" class="w-full p-3 border border-gray-300 rounded-lg" onchange="updateNewStudentSections()">
+                                    <option value="">اختر الصف</option>
+                                    <option value="10">العاشر</option>
+                                    <option value="11">الحادي عشر أكاديمي</option>
+                                    <option value="12">الثاني عشر أكاديمي</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-gray-700 font-semibold mb-2">الشعبة</label>
+                                <select id="newStudentSection" class="w-full p-3 border border-gray-300 rounded-lg">
+                                    <option value="">اختر الشعبة</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-gray-700 font-semibold mb-2">تاريخ الميلاد</label>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <input type="number" id="newBirthDay" class="p-3 border border-gray-300 rounded-lg" placeholder="اليوم" min="1" max="31">
+                                <input type="number" id="newBirthMonth" class="p-3 border border-gray-300 rounded-lg" placeholder="الشهر" min="1" max="12">
+                                <input type="number" id="newBirthYear" class="p-3 border border-gray-300 rounded-lg" placeholder="السنة" min="1990" max="2010">
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <input type="text" id="newBirthPlace" class="p-3 border border-gray-300 rounded-lg" placeholder="مكان الولادة">
+                            <input type="text" id="newResidence" class="p-3 border border-gray-300 rounded-lg" placeholder="مكان السكن">
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-gray-700 font-semibold mb-2">الديانة</label>
+                                <select id="newReligion" class="w-full p-3 border border-gray-300 rounded-lg">
+                                    <option value="">اختر الديانة</option>
+                                    <option value="الإسلام">الإسلام</option>
+                                    <option value="المسيحية">المسيحية</option>
+                                    <option value="أخرى">أخرى</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-gray-700 font-semibold mb-2">الجنسية</label>
+                                <select id="newNationality" class="w-full p-3 border border-gray-300 rounded-lg">
+                                    <option value="">اختر الجنسية</option>
+                                    <option value="أردنية">أردنية</option>
+                                    <option value="فلسطينية">فلسطينية</option>
+                                    <option value="سورية">سورية</option>
+                                    <option value="عراقية">عراقية</option>
+                                    <option value="لبنانية">لبنانية</option>
+                                    <option value="سعودية">سعودية</option>
+                                    <option value="مصرية">مصرية</option>
+                                    <option value="أخرى">أخرى</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <input type="text" id="newNationalId" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="الرقم الوطني (10 أرقام)" maxlength="10" pattern="[0-9]{10}" onblur="checkNationalIdAvailability('newNationalId')">
+                        <div id="nationalIdStatus" class="text-sm mt-1"></div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <input type="text" id="newGuardianName1" class="p-3 border border-gray-300 rounded-lg" placeholder="اسم ولي الأمر الأول">
+                            <input type="text" id="newGuardianName2" class="p-3 border border-gray-300 rounded-lg" placeholder="اسم الأب">
+                            <input type="text" id="newGuardianName3" class="p-3 border border-gray-300 rounded-lg" placeholder="اسم الجد">
+                            <input type="text" id="newGuardianName4" class="p-3 border border-gray-300 rounded-lg" placeholder="اسم العائلة">
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <input type="text" id="newGuardianJob" class="p-3 border border-gray-300 rounded-lg" placeholder="عمل ولي الأمر">
+                            <input type="text" id="newGuardianPhone" class="p-3 border border-gray-300 rounded-lg" placeholder="رقم هاتف ولي الأمر (10 أرقام)" maxlength="10" pattern="[0-9]{10}">
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <input type="text" id="newStudentUsername" class="p-3 border border-gray-300 rounded-lg" placeholder="اسم المستخدم" onblur="checkUsernameAvailability('newStudentUsername')">
+                                <div id="newUsernameStatus" class="text-sm mt-1"></div>
+                            </div>
+                            <input type="password" id="newStudentPassword" class="p-3 border border-gray-300 rounded-lg" placeholder="كلمة المرور">
+                        </div>
+                        
+                        <div class="flex gap-4 pt-4">
+                            <button onclick="addNewStudent()" class="flex-1 bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition duration-300">
+                                <i class="fas fa-user-plus mr-2"></i>
+                                تسجيل الطالب
+                            </button>
+                            <button onclick="closeModal()" class="flex-1 bg-gray-600 text-white py-3 rounded-lg hover:bg-gray-700 transition duration-300">
+                                <i class="fas fa-times mr-2"></i>
+                                إلغاء
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+        }
+
+        function updateNewStudentSections() {
+            const grade = document.getElementById('newStudentGrade').value;
+            const sectionSelect = document.getElementById('newStudentSection');
+            
+            sectionSelect.innerHTML = '<option value="">اختر الشعبة</option>';
+            
+            if (grade) {
+                const arabicLetters = ['أ', 'ب', 'ج', 'د', 'هـ', 'و', 'ز', 'ح'];
+                let maxSections = grade === '10' ? 4 : grade === '11' ? 8 : 6;
+                
+                for (let i = 0; i < maxSections; i++) {
+                    const gradeText = grade === '10' ? 'العاشر' : grade === '11' ? 'الحادي عشر' : 'الثاني عشر';
+                    const sectionValue = `${gradeText} ${arabicLetters[i]}`;
+                    const option = document.createElement('option');
+                    option.value = sectionValue;
+                    option.textContent = sectionValue;
+                    sectionSelect.appendChild(option);
+                }
+            }
+        }
+
+        async function addNewStudent() {
+            const studentData = {
+                full_name: `${document.getElementById('newStudentName1').value} ${document.getElementById('newStudentName2').value} ${document.getElementById('newStudentName3').value} ${document.getElementById('newStudentName4').value}`,
+                name1: document.getElementById('newStudentName1').value,
+                name2: document.getElementById('newStudentName2').value,
+                name3: document.getElementById('newStudentName3').value,
+                name4: document.getElementById('newStudentName4').value,
+                grade: document.getElementById('newStudentGrade').value,
+                section: document.getElementById('newStudentSection').value,
+                birth_date: `${document.getElementById('newBirthDay').value}/${document.getElementById('newBirthMonth').value}/${document.getElementById('newBirthYear').value}`,
+                birth_place: document.getElementById('newBirthPlace').value,
+                residence: document.getElementById('newResidence').value,
+                religion: document.getElementById('newReligion').value,
+                nationality: document.getElementById('newNationality').value,
+                national_id: document.getElementById('newNationalId').value,
+                guardian_name: `${document.getElementById('newGuardianName1').value} ${document.getElementById('newGuardianName2').value} ${document.getElementById('newGuardianName3').value} ${document.getElementById('newGuardianName4').value}`,
+                guardian_job: document.getElementById('newGuardianJob').value,
+                guardian_phone: document.getElementById('newGuardianPhone').value,
+                username: document.getElementById('newStudentUsername').value,
+                password: document.getElementById('newStudentPassword').value,
+                created_at: new Date().toISOString()
+            };
+
+            // Validation
+            if (!studentData.name1 || !studentData.name2 || !studentData.name3 || !studentData.name4) {
+                showNotification('يرجى إدخال الاسم الكامل', 'error');
+                return;
+            }
+
+            if (!studentData.grade || !studentData.section) {
+                showNotification('يرجى اختيار الصف والشعبة', 'error');
+                return;
+            }
+
+            if (!studentData.username || !studentData.password) {
+                showNotification('يرجى إدخال اسم المستخدم وكلمة المرور', 'error');
+                return;
+            }
+
+            if (!studentData.national_id || studentData.national_id.length !== 10) {
+                showNotification('يرجى إدخال رقم وطني صحيح (10 أرقام)', 'error');
+                return;
+            }
+
+            let supabaseSuccess = false;
+            let googleSheetsSuccess = false;
+
+            // Try to save to Supabase
+            try {
+                showSyncIndicator('جاري الحفظ في قاعدة البيانات الرئيسية...');
+                const { data, error } = await supabase
+                    .from('students')
+                    .insert([studentData])
+                    .select();
+
+                if (error) throw error;
+
+                supabaseSuccess = true;
+                showNotification('✅ تم حفظ الطالب في قاعدة البيانات الرئيسية بنجاح', 'success');
+                
+                // Update local data
+                allStudents.push(data[0]);
+                
+            } catch (supabaseError) {
+                console.error('Supabase error:', supabaseError);
+                showNotification('❌ فشل الحفظ في قاعدة البيانات الرئيسية: ' + (supabaseError.message || 'خطأ غير معروف'), 'error');
+            }
+
+            // Try to sync with Google Sheets
+            try {
+                showSyncIndicator('جاري المزامنة مع Google Sheets...');
+                await syncWithGoogleSheets('student', studentData);
+                googleSheetsSuccess = true;
+                showNotification('✅ تم حفظ الطالب في Google Sheets بنجاح', 'success');
+            } catch (googleError) {
+                console.error('Google Sheets error:', googleError);
+                showNotification('❌ فشل الحفظ في Google Sheets: ' + (googleError.message || 'خطأ في الاتصال'), 'error');
+            }
+
+            hideSyncIndicator();
+
+            // Show final status
+            if (supabaseSuccess && googleSheetsSuccess) {
+                showNotification('🎉 تم تسجيل الطالب وحفظه في جميع الأنظمة بنجاح', 'success');
+            } else if (supabaseSuccess && !googleSheetsSuccess) {
+                showNotification('⚠️ تم تسجيل الطالب في قاعدة البيانات الرئيسية، لكن فشل في Google Sheets', 'error');
+            } else if (!supabaseSuccess && googleSheetsSuccess) {
+                showNotification('⚠️ تم الحفظ في Google Sheets، لكن فشل في قاعدة البيانات الرئيسية', 'error');
+            } else {
+                showNotification('❌ فشل تسجيل الطالب في جميع الأنظمة', 'error');
+            }
+
+            // If at least one succeeded, proceed
+            if (supabaseSuccess || googleSheetsSuccess) {
+                closeModal();
+                
+                // Refresh the display
+                if (currentUserType === 'teacher') {
+                    loadTeacherStudents();
+                } else {
+                    loadAdminStudents();
+                }
+            }
+        }
+
+        async function syncWithGoogleSheets(type, data) {
+            const googleSheetsUrl = 'https://script.google.com/macros/s/AKfycbw9D3m6RqrF_0ltmZOx5_5GaMqsGGTYmjuzalqTP0C3zuD_ErMd_0GWsq-NhLG45mHB/exec';
+            
+            try {
+                // Prepare data based on type
+                let formData = new FormData();
+                formData.append('action', 'add');
+                formData.append('type', type);
+                
+                if (type === 'student') {
+                    formData.append('full_name', data.full_name || '');
+                    formData.append('grade', data.grade || '');
+                    formData.append('section', data.section || '');
+                    formData.append('birth_date', data.birth_date || '');
+                    formData.append('birth_place', data.birth_place || '');
+                    formData.append('residence', data.residence || '');
+                    formData.append('religion', data.religion || '');
+                    formData.append('nationality', data.nationality || '');
+                    formData.append('national_id', data.national_id || '');
+                    formData.append('guardian_name', data.guardian_name || '');
+                    formData.append('guardian_job', data.guardian_job || '');
+                    formData.append('guardian_phone', data.guardian_phone || '');
+                    formData.append('username', data.username || '');
+                    formData.append('password', data.password || '');
+                } else if (type === 'teacher') {
+                    formData.append('full_name', data.full_name || '');
+                    formData.append('phone', data.phone || '');
+                    formData.append('subject', data.subject || '');
+                    formData.append('job_title', data.job_title || '');
+                    formData.append('rank', data.rank || '');
+                    formData.append('section', data.section || '');
+                    formData.append('national_id', data.national_id || '');
+                    formData.append('ministry_id', data.ministry_id || '');
+                    formData.append('username', data.username || '');
+                    formData.append('password', data.password || '');
+                } else if (type === 'student_penalty') {
+                    formData.append('student_name', data.student_name || '');
+                    formData.append('student_section', data.student_section || '');
+                    formData.append('penalty_type', data.type || '');
+                    formData.append('reason', data.reason || '');
+                    formData.append('date', data.date || '');
+                    formData.append('issued_by', data.issued_by || '');
+                    formData.append('grade_deduction_amount', data.grade_deduction_amount || '');
+                } else if (type === 'teacher_penalty') {
+                    formData.append('teacher_name', data.teacher_name || '');
+                    formData.append('teacher_subject', data.teacher_subject || '');
+                    formData.append('penalty_type', data.type || '');
+                    formData.append('reason', data.reason || '');
+                    formData.append('date', data.date || '');
+                } else if (type === 'teacher_leave') {
+                    formData.append('teacher_name', data.teacher_name || '');
+                    formData.append('teacher_subject', data.teacher_subject || '');
+                    formData.append('leave_type', data.type || '');
+                    formData.append('reason', data.reason || '');
+                    formData.append('date', data.date || '');
+                }
+                
+                const response = await fetch(googleSheetsUrl, {
+                    method: 'POST',
+                    body: formData,
+                    mode: 'no-cors' // Important for Google Apps Script
+                });
+                
+                // Since we're using no-cors, we can't read the response
+                // We'll assume success if no error is thrown
+                console.log('تم إرسال البيانات إلى Google Sheets');
+                return { success: true };
+                
+            } catch (error) {
+                console.error('Google Sheets sync error:', error);
+                throw new Error('فشل في المزامنة مع Google Sheets: ' + error.message);
+            }
+        }
+
+        function closeModal() {
+            const modals = document.querySelectorAll('.modal-backdrop');
+            modals.forEach(modal => modal.remove());
+        }
+
+        async function checkUsernameAvailability(inputId) {
+            const usernameInput = document.getElementById(inputId);
+            if (!usernameInput) return true;
+            
+            const username = usernameInput.value;
+            let statusElement;
+            
+            if (inputId === 'regUsername') {
+                statusElement = document.getElementById('usernameStatus');
+            } else if (inputId === 'newStudentUsername') {
+                statusElement = document.getElementById('newUsernameStatus');
+            }
+            
+            if (!username) {
+                if (statusElement) statusElement.textContent = '';
+                return true;
+            }
+
+            // Check in all data arrays
+            const existsInStudents = allStudents.some(student => student.username === username);
+            const existsInTeachers = allTeachers.some(teacher => teacher.username === username);
+            const existsInAdmins = allAdmins.some(admin => admin.username === username);
+
+            if (existsInStudents || existsInTeachers || existsInAdmins) {
+                if (statusElement) {
+                    statusElement.textContent = 'اسم المستخدم موجود بالفعل';
+                    statusElement.className = 'text-sm mt-1 text-red-600';
+                }
+                return false;
+            } else {
+                if (statusElement) {
+                    statusElement.textContent = 'اسم المستخدم متاح';
+                    statusElement.className = 'text-sm mt-1 text-green-600';
+                }
+                return true;
+            }
+        }
+
+        async function checkNationalIdAvailability(inputId) {
+            const nationalIdInput = document.getElementById(inputId);
+            if (!nationalIdInput) return true;
+            
+            const nationalId = nationalIdInput.value;
+            const statusElement = document.getElementById('nationalIdStatus');
+            
+            if (!nationalId) {
+                if (statusElement) statusElement.textContent = '';
+                return true;
+            }
+
+            if (nationalId.length !== 10) {
+                if (statusElement) {
+                    statusElement.textContent = 'الرقم الوطني يجب أن يكون 10 أرقام';
+                    statusElement.className = 'text-sm mt-1 text-red-600';
+                }
+                return false;
+            }
+
+            // Check in students and teachers
+            const existsInStudents = allStudents.some(student => student.national_id === nationalId);
+            const existsInTeachers = allTeachers.some(teacher => teacher.national_id === nationalId);
+
+            if (existsInStudents || existsInTeachers) {
+                if (statusElement) {
+                    statusElement.textContent = 'الرقم الوطني موجود بالفعل';
+                    statusElement.className = 'text-sm mt-1 text-red-600';
+                }
+                return false;
+            } else {
+                if (statusElement) {
+                    statusElement.textContent = 'الرقم الوطني متاح';
+                    statusElement.className = 'text-sm mt-1 text-green-600';
+                }
+                return true;
+            }
+        }
+
+        function editStudentProfile() {
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 modal-backdrop flex items-center justify-center z-50';
+            modal.innerHTML = `
+                <div class="modal-content bg-white rounded-lg shadow-xl p-6 max-w-2xl w-full mx-4">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-2xl font-bold text-gray-800">
+                            <i class="fas fa-edit text-blue-600 mr-3"></i>
+                            تعديل الملف الشخصي
+                        </h3>
+                        <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700">
+                            <i class="fas fa-times text-xl"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-gray-700 font-semibold mb-2">اسم المستخدم</label>
+                            <input type="text" id="editStudentUsername" value="${currentUser.username}" class="w-full p-3 border border-gray-300 rounded-lg">
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 font-semibold mb-2">كلمة المرور الجديدة</label>
+                            <input type="password" id="editStudentPassword" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="اتركها فارغة إذا لم ترد تغييرها">
+                        </div>
+                        
+                        <div class="flex gap-4 pt-4">
+                            <button onclick="saveStudentProfile()" class="flex-1 bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700">
+                                <i class="fas fa-save mr-2"></i>
+                                حفظ التعديلات
+                            </button>
+                            <button onclick="closeModal()" class="flex-1 bg-gray-600 text-white py-3 rounded-lg hover:bg-gray-700">
+                                <i class="fas fa-times mr-2"></i>
+                                إلغاء
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+        }
+
+        function editTeacherProfile() {
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 modal-backdrop flex items-center justify-center z-50';
+            modal.innerHTML = `
+                <div class="modal-content bg-white rounded-lg shadow-xl p-6 max-w-2xl w-full mx-4">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-2xl font-bold text-gray-800">
+                            <i class="fas fa-edit text-blue-600 mr-3"></i>
+                            تعديل الملف الشخصي
+                        </h3>
+                        <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700">
+                            <i class="fas fa-times text-xl"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-gray-700 font-semibold mb-2">اسم المستخدم</label>
+                            <input type="text" id="editTeacherUsername" value="${currentUser.username}" class="w-full p-3 border border-gray-300 rounded-lg">
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 font-semibold mb-2">كلمة المرور الجديدة</label>
+                            <input type="password" id="editTeacherPassword" class="w-full p-3 border border-gray-300 rounded-lg" placeholder="اتركها فارغة إذا لم ترد تغييرها">
+                        </div>
+                        
+                        <div class="flex gap-4 pt-4">
+                            <button onclick="saveTeacherProfile()" class="flex-1 bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700">
+                                <i class="fas fa-save mr-2"></i>
+                                حفظ التعديلات
+                            </button>
+                            <button onclick="closeModal()" class="flex-1 bg-gray-600 text-white py-3 rounded-lg hover:bg-gray-700">
+                                <i class="fas fa-times mr-2"></i>
+                                إلغاء
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+        }
+
+        async function saveStudentProfile() {
+            const newUsername = document.getElementById('editStudentUsername').value;
+            const newPassword = document.getElementById('editStudentPassword').value;
+
+            if (!newUsername) {
+                showNotification('يرجى إدخال اسم المستخدم', 'error');
+                return;
+            }
+
+            showSyncIndicator('جاري حفظ التعديلات...');
+
+            try {
+                const updateData = { username: newUsername };
+                if (newPassword) {
+                    updateData.password = newPassword;
+                }
+
+                const { error } = await supabase
+                    .from('students')
+                    .update(updateData)
+                    .eq('id', currentUser.id);
+
+                if (error) throw error;
+
+                // Update current user data
+                currentUser.username = newUsername;
+                if (newPassword) {
+                    currentUser.password = newPassword;
+                }
+
+                hideSyncIndicator();
+                showNotification('تم حفظ التعديلات بنجاح', 'success');
+                closeModal();
+                displayStudentInfo();
+                
+            } catch (error) {
+                console.error('Save profile error:', error);
+                hideSyncIndicator();
+                showNotification('حدث خطأ أثناء حفظ التعديلات', 'error');
+            }
+        }
+
+        async function saveTeacherProfile() {
+            const newUsername = document.getElementById('editTeacherUsername').value;
+            const newPassword = document.getElementById('editTeacherPassword').value;
+
+            if (!newUsername) {
+                showNotification('يرجى إدخال اسم المستخدم', 'error');
+                return;
+            }
+
+            showSyncIndicator('جاري حفظ التعديلات...');
+
+            try {
+                const updateData = { username: newUsername };
+                if (newPassword) {
+                    updateData.password = newPassword;
+                }
+
+                const { error } = await supabase
+                    .from('teachers')
+                    .update(updateData)
+                    .eq('id', currentUser.id);
+
+                if (error) throw error;
+
+                // Update current user data
+                currentUser.username = newUsername;
+                if (newPassword) {
+                    currentUser.password = newPassword;
+                }
+
+                hideSyncIndicator();
+                showNotification('تم حفظ التعديلات بنجاح', 'success');
+                closeModal();
+                displayTeacherInfo();
+                
+            } catch (error) {
+                console.error('Save profile error:', error);
+                hideSyncIndicator();
+                showNotification('حدث خطأ أثناء حفظ التعديلات', 'error');
+            }
+        }
+        function showDetailedStats() {
+            // Calculate detailed statistics
+            const stats = {
+                totalStudents: allStudents.length,
+                totalTeachers: allTeachers.length,
+                totalPenalties: allStudentPenalties.length,
+                totalLeaves: allTeacherLeaves.length,
+                gradeDistribution: {},
+                sectionDistribution: {},
+                nationalityDistribution: {},
+                religionDistribution: {},
+                subjectDistribution: {},
+                penaltyTypeDistribution: {}
+            };
+
+            // Calculate distributions
+            allStudents.forEach(student => {
+                const grade = student.grade;
+                const section = student.section;
+                const nationality = student.nationality || 'غير محدد';
+                const religion = student.religion || 'غير محدد';
+
+                stats.gradeDistribution[grade] = (stats.gradeDistribution[grade] || 0) + 1;
+                stats.sectionDistribution[section] = (stats.sectionDistribution[section] || 0) + 1;
+                stats.nationalityDistribution[nationality] = (stats.nationalityDistribution[nationality] || 0) + 1;
+                stats.religionDistribution[religion] = (stats.religionDistribution[religion] || 0) + 1;
+            });
+
+            allTeachers.forEach(teacher => {
+                const subject = teacher.subject || 'غير محدد';
+                stats.subjectDistribution[subject] = (stats.subjectDistribution[subject] || 0) + 1;
+            });
+
+            allStudentPenalties.forEach(penalty => {
+                const type = penalty.type || 'غير محدد';
+                stats.penaltyTypeDistribution[type] = (stats.penaltyTypeDistribution[type] || 0) + 1;
+            });
+
+            const modal = document.createElement('div');
+            modal.className = 'fixed inset-0 modal-backdrop flex items-center justify-center z-50';
+            modal.innerHTML = `
+                <div class="modal-content bg-white rounded-lg shadow-xl p-6 max-w-6xl w-full mx-4 max-h-screen overflow-y-auto">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-2xl font-bold text-gray-800">
+                            <i class="fas fa-chart-bar text-blue-600 mr-3"></i>
+                            الإحصائيات التفصيلية للمدرسة
+                        </h3>
+                        <button onclick="closeModal()" class="text-gray-500 hover:text-gray-700">
+                            <i class="fas fa-times text-xl"></i>
+                        </button>
+                    </div>
+                    
+                    <!-- Overall Stats -->
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                        <div class="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-6 rounded-lg text-center">
+                            <i class="fas fa-users text-3xl mb-3"></i>
+                            <h4 class="text-lg font-semibold">إجمالي الطلبة</h4>
+                            <p class="text-3xl font-bold">${stats.totalStudents}</p>
+                        </div>
+                        <div class="bg-gradient-to-r from-green-500 to-green-600 text-white p-6 rounded-lg text-center">
+                            <i class="fas fa-chalkboard-teacher text-3xl mb-3"></i>
+                            <h4 class="text-lg font-semibold">إجمالي المعلمين</h4>
+                            <p class="text-3xl font-bold">${stats.totalTeachers}</p>
+                        </div>
+                        <div class="bg-gradient-to-r from-red-500 to-red-600 text-white p-6 rounded-lg text-center">
+                            <i class="fas fa-exclamation-triangle text-3xl mb-3"></i>
+                            <h4 class="text-lg font-semibold">إجمالي العقوبات</h4>
+                            <p class="text-3xl font-bold">${stats.totalPenalties}</p>
+                        </div>
+                        <div class="bg-gradient-to-r from-orange-500 to-orange-600 text-white p-6 rounded-lg text-center">
+                            <i class="fas fa-calendar-times text-3xl mb-3"></i>
+                            <h4 class="text-lg font-semibold">إجمالي الإجازات</h4>
+                            <p class="text-3xl font-bold">${stats.totalLeaves}</p>
+                        </div>
+                    </div>
+
+                    <!-- Detailed Distributions -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- Grade Distribution -->
+                        <div class="bg-blue-50 p-6 rounded-lg">
+                            <h4 class="text-lg font-semibold mb-4 text-blue-800">
+                                <i class="fas fa-graduation-cap mr-2"></i>
+                                توزيع الطلبة حسب الصف
+                            </h4>
+                            <div class="space-y-2">
+                                ${Object.entries(stats.gradeDistribution).map(([grade, count]) => `
+                                    <div class="flex justify-between items-center p-2 bg-white rounded">
+                                        <span class="font-medium">${grade === '10' ? 'العاشر' : grade === '11' ? 'الحادي عشر' : grade === '12' ? 'الثاني عشر' : grade}</span>
+                                        <span class="font-bold text-blue-600">${count}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+
+                        <!-- Nationality Distribution -->
+                        <div class="bg-green-50 p-6 rounded-lg">
+                            <h4 class="text-lg font-semibold mb-4 text-green-800">
+                                <i class="fas fa-flag mr-2"></i>
+                                توزيع الطلبة حسب الجنسية
+                            </h4>
+                            <div class="space-y-2">
+                                ${Object.entries(stats.nationalityDistribution).slice(0, 5).map(([nationality, count]) => `
+                                    <div class="flex justify-between items-center p-2 bg-white rounded">
+                                        <span class="font-medium">${nationality}</span>
+                                        <span class="font-bold text-green-600">${count}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+
+                        <!-- Religion Distribution -->
+                        <div class="bg-purple-50 p-6 rounded-lg">
+                            <h4 class="text-lg font-semibold mb-4 text-purple-800">
+                                <i class="fas fa-pray mr-2"></i>
+                                توزيع الطلبة حسب الديانة
+                            </h4>
+                            <div class="space-y-2">
+                                ${Object.entries(stats.religionDistribution).map(([religion, count]) => `
+                                    <div class="flex justify-between items-center p-2 bg-white rounded">
+                                        <span class="font-medium">${religion}</span>
+                                        <span class="font-bold text-purple-600">${count}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+
+                        <!-- Subject Distribution -->
+                        <div class="bg-indigo-50 p-6 rounded-lg">
+                            <h4 class="text-lg font-semibold mb-4 text-indigo-800">
+                                <i class="fas fa-book mr-2"></i>
+                                توزيع المعلمين حسب المادة
+                            </h4>
+                            <div class="space-y-2 max-h-48 overflow-y-auto">
+                                ${Object.entries(stats.subjectDistribution).map(([subject, count]) => `
+                                    <div class="flex justify-between items-center p-2 bg-white rounded">
+                                        <span class="font-medium text-sm">${subject}</span>
+                                        <span class="font-bold text-indigo-600">${count}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+
+                        <!-- Section Distribution -->
+                        <div class="bg-yellow-50 p-6 rounded-lg">
+                            <h4 class="text-lg font-semibold mb-4 text-yellow-800">
+                                <i class="fas fa-users mr-2"></i>
+                                توزيع الطلبة حسب الشعبة
+                            </h4>
+                            <div class="space-y-2 max-h-48 overflow-y-auto">
+                                ${Object.entries(stats.sectionDistribution).slice(0, 10).map(([section, count]) => `
+                                    <div class="flex justify-between items-center p-2 bg-white rounded">
+                                        <span class="font-medium text-sm">${section}</span>
+                                        <span class="font-bold text-yellow-600">${count}</span>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+
+                        <!-- Penalty Types -->
+                        <div class="bg-red-50 p-6 rounded-lg">
+                            <h4 class="text-lg font-semibold mb-4 text-red-800">
+                                <i class="fas fa-exclamation-triangle mr-2"></i>
+                                أنواع العقوبات
+                            </h4>
+                            <div class="space-y-2">
+                                ${Object.entries(stats.penaltyTypeDistribution).map(([type, count]) => {
+                                    const typeNames = {
+                                        'grade_deduction': 'حسم علامات',
+                                        'warning': 'إنذار',
+                                        'internal_transfer': 'نقل داخلي',
+                                        'external_transfer': 'نقل خارجي',
+                                        'expulsion': 'فصل من المدرسة'
+                                    };
+                                    return `
+                                        <div class="flex justify-between items-center p-2 bg-white rounded">
+                                            <span class="font-medium text-sm">${typeNames[type] || type}</span>
+                                            <span class="font-bold text-red-600">${count}</span>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Export Options -->
+                    <div class="mt-8 pt-6 border-t border-gray-200">
+                        <h4 class="text-lg font-semibold mb-4">تصدير الإحصائيات</h4>
+                        <div class="flex flex-wrap gap-4">
+                            <button onclick="exportStatsToExcel()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg">
+                                <i class="fas fa-file-excel mr-2"></i>
+                                تصدير إلى Excel
+                            </button>
+                            <button onclick="printStats()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">
+                                <i class="fas fa-print mr-2"></i>
+                                طباعة الإحصائيات
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+        }
+
+        function exportStatsToExcel() {
+            const statsData = [
+                { 'النوع': 'إجمالي الطلبة', 'العدد': allStudents.length },
+                { 'النوع': 'إجمالي المعلمين', 'العدد': allTeachers.length },
+                { 'النوع': 'إجمالي العقوبات', 'العدد': allStudentPenalties.length },
+                { 'النوع': 'إجمالي الإجازات', 'العدد': allTeacherLeaves.length }
+            ];
+            
+            exportToExcel(statsData, 'إحصائيات_المدرسة_العامة', 'الإحصائيات');
+        }
+
+        function printStats() {
+            window.print();
+        }
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'97064796018732aa',t:'MTc1NTQwMzM4NS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
